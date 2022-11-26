@@ -5,6 +5,7 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 
 ## Requirements
 - Either macOS, Windows, or Linux.
+- Zig compiler that supports the "stage 2" self-hosted compiler.  Tested on 0.11.0, but in theory should support 0.10.0.
 - [Playdate SDK](https://play.date/dev/) installed.
 - Binutils:
     - `objcopy` is required to be in your `PATH` on macOS and Linux, while `arm-none-eabi-objcopy` is required for Windows.
