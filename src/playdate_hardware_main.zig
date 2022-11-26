@@ -22,3 +22,16 @@ comptime {
     );
 }
 export var PD_eventHandler: *const fn (playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEvent, arg: u32) callconv(.C) c_int linksection(".capi_handler") = main.eventHandler;
+
+//These are required until https://github.com/ziglang/zig/issues/13530 is solved
+//TODO make more efficent. An assembly implementation might be ideal
+export fn __aeabi_memset(dest: [*c]volatile u8, len: usize, c: c_int) [*c]volatile u8 {
+    if (len == 0) {
+        return dest;
+    }
+    for (dest[0..len]) |*b| b.* = @intCast(u8, c);
+    return dest;
+}
+export fn __aeabi_memclr(dest: [*c]volatile u8, len: usize) [*c]volatile u8 {
+    return __aeabi_memset(dest, len, 0);
+}

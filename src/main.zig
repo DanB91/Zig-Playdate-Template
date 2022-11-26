@@ -32,3 +32,4 @@ fn update_and_render(userdata: ?*anyopaque) callconv(.C) c_int {
     //we always want this frame drawn
     return 1;
 }
+
