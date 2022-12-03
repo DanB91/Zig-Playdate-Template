@@ -92,11 +92,4 @@ pub fn build(b: *std.build.Builder) !void {
             @panic("Unsupported OS!");
         },
     }
-    // const bash_script = try std.fmt.a
-
-    // const playdate_sdk_path = try std.process.getEnvVarOwned(b.allocator, "PLAYDATE_SDK_PATH");
-    // const home_path = try std.process.getEnvVarOwned(
-    //     b.allocator,
-    //     if (builtin.target.os.tag == .windows) "USERPROFILE" else "HOME",
-    // );
 }
