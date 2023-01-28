@@ -442,36 +442,34 @@ pub inline fn SoundFormat_bytesPerFrame(fmt: SoundFormat) u32 {
         (if (SoundFormatIs16bit(fmt)) 2 else 1);
 }
 
-//TODO: fill in parameters
 pub const PlaydateSoundSample = extern struct {
-    newSampleBuffer: *const fn (c_int) callconv(.C) ?*AudioSample,
-    loadIntoSample: *const fn (?*AudioSample, [*c]const u8) callconv(.C) c_int,
-    load: *const fn ([*c]const u8) callconv(.C) ?*AudioSample,
-    newSampleFromData: *const fn ([*c]u8, SoundFormat, u32, c_int) callconv(.C) ?*AudioSample,
-    getData: *const fn (?*AudioSample, [*c][*c]u8, [*c]SoundFormat, [*c]u32, [*c]u32) callconv(.C) void,
-    freeSample: *const fn (?*AudioSample) callconv(.C) void,
-    getLength: *const fn (?*AudioSample) callconv(.C) f32,
+    newSampleBuffer: *const fn (byteCount: c_int) callconv(.C) ?*AudioSample,
+    loadIntoSample: *const fn (sample: ?*AudioSample, path: [*c]const u8) callconv(.C) c_int,
+    load: *const fn (path: [*c]const u8) callconv(.C) ?*AudioSample,
+    newSampleFromData: *const fn (data: [*c]u8, format: SoundFormat, sampleRate: u32, byteCount: c_int) callconv(.C) ?*AudioSample,
+    getData: *const fn (sample: ?*AudioSample, data: ?*[*c]u8, format: [*c]SoundFormat, sampleRate: ?*u32, byteLength: ?*u32) callconv(.C) void,
+    freeSample: *const fn (sample: ?*AudioSample) callconv(.C) void,
+    getLength: *const fn (sample: ?*AudioSample) callconv(.C) f32,
 };
 
-//TODO: fill in parameters
 pub const PlaydateSoundSampleplayer = extern struct {
     newPlayer: *const fn () callconv(.C) ?*SamplePlayer,
     freePlayer: *const fn (?*SamplePlayer) callconv(.C) void,
-    setSample: *const fn (?*SamplePlayer, ?*AudioSample) callconv(.C) void,
-    play: *const fn (?*SamplePlayer, c_int, f32) callconv(.C) c_int,
-    isPlaying: *const fn (?*SamplePlayer) callconv(.C) c_int,
-    stop: *const fn (?*SamplePlayer) callconv(.C) void,
-    setVolume: *const fn (?*SamplePlayer, f32, f32) callconv(.C) void,
-    getVolume: *const fn (?*SamplePlayer, [*c]f32, [*c]f32) callconv(.C) void,
-    getLength: *const fn (?*SamplePlayer) callconv(.C) f32,
-    setOffset: *const fn (?*SamplePlayer, f32) callconv(.C) void,
-    setRate: *const fn (?*SamplePlayer, f32) callconv(.C) void,
-    setPlayRange: *const fn (?*SamplePlayer, c_int, c_int) callconv(.C) void,
-    setFinishCallback: *const fn (?*SamplePlayer, SndCallbackProc) callconv(.C) void,
-    setLoopCallback: *const fn (?*SamplePlayer, SndCallbackProc) callconv(.C) void,
-    getOffset: *const fn (?*SamplePlayer) callconv(.C) f32,
-    getRate: *const fn (?*SamplePlayer) callconv(.C) f32,
-    setPaused: *const fn (?*SamplePlayer, c_int) callconv(.C) void,
+    setSample: *const fn (player: ?*SamplePlayer, sample: ?*AudioSample) callconv(.C) void,
+    play: *const fn (player: ?*SamplePlayer, repeat: c_int, rate: f32) callconv(.C) c_int,
+    isPlaying: *const fn (player: ?*SamplePlayer) callconv(.C) c_int,
+    stop: *const fn (player: ?*SamplePlayer) callconv(.C) void,
+    setVolume: *const fn (player: ?*SamplePlayer, left: f32, right: f32) callconv(.C) void,
+    getVolume: *const fn (player: ?*SamplePlayer, left: ?*f32, right: ?*f32) callconv(.C) void,
+    getLength: *const fn (player: ?*SamplePlayer) callconv(.C) f32,
+    setOffset: *const fn (player: ?*SamplePlayer, offset: f32) callconv(.C) void,
+    setRate: *const fn (player: ?*SamplePlayer, rate: f32) callconv(.C) void,
+    setPlayRange: *const fn (player: ?*SamplePlayer, start: c_int, end: c_int) callconv(.C) void,
+    setFinishCallback: *const fn (player: ?*SamplePlayer, callback: ?SndCallbackProc) callconv(.C) void,
+    setLoopCallback: *const fn (player: ?*SamplePlayer, callback: ?SndCallbackProc) callconv(.C) void,
+    getOffset: *const fn (player: ?*SamplePlayer) callconv(.C) f32,
+    getRate: *const fn (player: ?*SamplePlayer) callconv(.C) f32,
+    setPaused: *const fn (player: ?*SamplePlayer, flag: c_int) callconv(.C) void,
 };
 
 pub const PDSynth = SoundSource;
