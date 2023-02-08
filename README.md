@@ -42,5 +42,5 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
     - While it works very well due to its interoperability with C, Zig is not officially supported on the Playdate.  If you are having any issues, feel free to open a bug report here.
 
 - Be Mindful Of The Stack
-    - You only get 10KB of stack space. That's it. I have not tested much of Zig's std on the Playdate, but std was not designed for a stack this small. See how far you can get, but you might want to write a lightweight "toolbox" library and lean on arena or heap allocated objects, like I did for UPWARD.  `std.fmt.bufPrintZ` works well, though!.
+    - You only get 10KB of stack space. That's it. I have not tested much of Zig's std on the Playdate, but std was not designed for a stack this small. See how far you can get, but you might want to write a lightweight "toolbox" library, like I did for UPWARD.  `std.fmt.bufPrintZ` works well, though!.
 
