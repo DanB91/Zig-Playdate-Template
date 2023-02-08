@@ -34,7 +34,13 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 ## <a name="Screenshot"></a>Screenshot
 <img src="readme_res/screenshot.png" alt="isolated" width="400"/>
 
-## Not Everything Has Been Tested
-With `zig translate-c` and a bunch of customization by hand, I converted the C API of the Playdate SDK to Zig.  While I have battle tested a lot of the APIs in my upcoming Pictoblox game and in my [port of UPWARD](https://github.com/DanB91/Upward-for-Playdate), there is much of the API here that has not been tested -- especially, the Sprite, JSON, Synth, and Sound Effect APIs.  
+## Things To Be Aware Of
+- Not Everything Has Been Tested
+    - With `zig translate-c` and a bunch of customization by hand, I converted the C API of the Playdate SDK to Zig.  While I have battle tested a lot of the APIs in my upcoming Pictoblox game and in my [port of UPWARD](https://github.com/DanB91/Upward-for-Playdate), there is much of the API here that has not been tested -- especially, the Sprite, JSON, Synth, and Sound Effect APIs.  If something isn't working, please check against the headers in the Playdate SDK C API and make sure the APIs match. Please open a bug report if the APIs don't match.
 
-If something isn't working, please check against the headers in the Playdate SDK C API and make sure the APIs match. Please open a bug report if the APIs don't match.
+- Not Officially Supported
+    - While it works very well due to its interoperability with C, Zig is not officially supported on the Playdate.  If you are having any issues, feel free to open a bug report here.
+
+- Be Mindful Of Stack
+    - You only get 10KB of stack space. That's it. I have not tested much of Zig's std on the Playdate, but std was not designed for a stack this small. See how far you can get, but you might want to write a lightweight "toolbox" library and lean on arena or heap allocated objects, like I did for UPWARD.  `std.fmt.bufPrintZ` works well, though!.
+
