@@ -1,15 +1,16 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 pub const PlaydateAPI = extern struct {
     system: *const PlaydateSys,
     file: *const PlaydateFile,
     graphics: *const PlaydateGraphics,
-    sprite: *anyopaque,
+    sprite: *const PlaydateSprite,
     display: *const PlaydateDisplay,
     sound: *const PlaydateSound,
-    lua: *anyopaque,
-    json: *anyopaque,
-    scoreboards: *anyopaque,
+    lua: *const PlaydateLua,
+    json: *const PlaydateJSON,
+    scoreboards: *const PlaydateScoreboards,
 };
 
 ////////Buttons//////////////
@@ -225,7 +226,7 @@ pub const PlaydateGraphics = extern struct {
     // raw framebuffer access
     getFrame: *const fn () callconv(.C) [*c]u8, // row stride = LCD_ROWSIZE
     getDisplayFrame: *const fn () callconv(.C) [*c]u8, // row stride = LCD_ROWSIZE
-    getDebugBitmap: ?*const fn () callconv(.C) ?*LCDBitmap, // valid in simulator only, function is null on device
+    getDebugBitmap: *const fn () callconv(.C) ?*LCDBitmap, // valid in simulator only, function is null on device
     copyFrameBufferBitmap: *const fn () callconv(.C) ?*LCDBitmap,
     markUpdatedRows: *const fn (start: c_int, end: c_int) callconv(.C) void,
     display: *const fn () callconv(.C) void,
@@ -382,7 +383,6 @@ pub const PlaydateSoundChannel = extern struct {
 };
 
 pub const FilePlayer = SoundSource;
-//TODO: fill in parameters
 pub const PlaydateSoundFileplayer = extern struct {
     newPlayer: *const fn () callconv(.C) ?*FilePlayer,
     freePlayer: *const fn (player: ?*FilePlayer) callconv(.C) void,
@@ -509,7 +509,6 @@ pub const SynthReleaseFunc = *const fn (?*anyopaque, c_int) callconv(.C) void;
 pub const SynthSetParameterFunc = *const fn (?*anyopaque, c_int, f32) callconv(.C) c_int;
 pub const SynthDeallocFunc = *const fn (?*anyopaque) callconv(.C) void;
 
-//TODO: fill in parameters
 pub const PlaydateSoundSynth = extern struct {
     newSynth: *const fn () callconv(.C) ?*PDSynth,
     freeSynth: *const fn (synth: ?*PDSynth) callconv(.C) void,
@@ -563,53 +562,51 @@ pub const PlaydateSoundSynth = extern struct {
 pub const SequenceTrack = opaque {};
 pub const SoundSequence = opaque {};
 pub const SequenceFinishedCallback = *const fn (seq: ?*SoundSequence, userdata: ?*anyopaque) callconv(.C) void;
-//TODO: fill in parameters
+
 pub const PlaydateSoundSequence = extern struct {
     newSequence: *const fn () callconv(.C) ?*SoundSequence,
-    freeSequence: *const fn (?*SoundSequence) callconv(.C) void,
+    freeSequence: *const fn (sequence: ?*SoundSequence) callconv(.C) void,
 
-    loadMidiFile: *const fn (?*SoundSequence, [*c]const u8) callconv(.C) c_int,
-    getTime: *const fn (?*SoundSequence) callconv(.C) u32,
-    setTime: *const fn (?*SoundSequence, u32) callconv(.C) void,
-    setLoops: *const fn (?*SoundSequence, c_int, c_int, c_int) callconv(.C) void,
-    getTempo: *const fn (?*SoundSequence) callconv(.C) c_int,
-    setTempo: *const fn (?*SoundSequence, c_int) callconv(.C) void,
-    getTrackCount: *const fn (?*SoundSequence) callconv(.C) c_int,
-    addTrack: *const fn (?*SoundSequence) callconv(.C) ?*SequenceTrack,
-    getTrackAtIndex: *const fn (?*SoundSequence, c_uint) callconv(.C) ?*SequenceTrack,
-    setTrackAtIndex: *const fn (?*SoundSequence, ?*SequenceTrack, c_uint) callconv(.C) void,
-    allNotesOff: *const fn (?*SoundSequence) callconv(.C) void,
+    loadMidiFile: *const fn (seq: ?*SoundSequence, path: [*c]const u8) callconv(.C) c_int,
+    getTime: *const fn (seq: ?*SoundSequence) callconv(.C) u32,
+    setTime: *const fn (seq: ?*SoundSequence, time: u32) callconv(.C) void,
+    setLoops: *const fn (seq: ?*SoundSequence, loopstart: c_int, loopend: c_int, loops: c_int) callconv(.C) void,
+    getTempo: *const fn (seq: ?*SoundSequence) callconv(.C) c_int,
+    setTempo: *const fn (seq: ?*SoundSequence, stepsPerSecond: c_int) callconv(.C) void,
+    getTrackCount: *const fn (seq: ?*SoundSequence) callconv(.C) c_int,
+    addTrack: *const fn (seq: ?*SoundSequence) callconv(.C) ?*SequenceTrack,
+    getTrackAtIndex: *const fn (seq: ?*SoundSequence, track: c_uint) callconv(.C) ?*SequenceTrack,
+    setTrackAtIndex: *const fn (seq: ?*SoundSequence, ?*SequenceTrack, idx: c_uint) callconv(.C) void,
+    allNotesOff: *const fn (seq: ?*SoundSequence) callconv(.C) void,
 
     // 1.1
-    isPlaying: *const fn (?*SoundSequence) callconv(.C) c_int,
-    getLength: *const fn (?*SoundSequence) callconv(.C) u32,
-    play: *const fn (?*SoundSequence, SequenceFinishedCallback, ?*anyopaque) callconv(.C) void,
-    stop: *const fn (?*SoundSequence) callconv(.C) void,
-    getCurrentStep: *const fn (?*SoundSequence, [*c]c_int) callconv(.C) c_int,
-    setCurrentStep: *const fn (?*SoundSequence, c_int, c_int, c_int) callconv(.C) void,
+    isPlaying: *const fn (seq: ?*SoundSequence) callconv(.C) c_int,
+    getLength: *const fn (seq: ?*SoundSequence) callconv(.C) u32,
+    play: *const fn (seq: ?*SoundSequence, finishCallback: SequenceFinishedCallback, userdata: ?*anyopaque) callconv(.C) void,
+    stop: *const fn (seq: ?*SoundSequence) callconv(.C) void,
+    getCurrentStep: *const fn (seq: ?*SoundSequence, timeOffset: ?*c_int) callconv(.C) c_int,
+    setCurrentStep: *const fn (seq: ?*SoundSequence, step: c_int, timeOffset: c_int, playNotes: c_int) callconv(.C) void,
 };
 
 pub const EffectProc = *const fn (e: ?*SoundEffect, left: [*c]i32, right: [*c]i32, nsamples: c_int, bufactive: c_int) callconv(.C) c_int;
 
-//TODO: fill in parameters
 pub const PlaydateSoundEffect = extern struct {
-    newEffect: *const fn (?*const EffectProc, ?*anyopaque) callconv(.C) ?*SoundEffect,
-    freeEffect: *const fn (?*SoundEffect) callconv(.C) void,
+    newEffect: *const fn (proc: ?*const EffectProc, userdata: ?*anyopaque) callconv(.C) ?*SoundEffect,
+    freeEffect: *const fn (effect: ?*SoundEffect) callconv(.C) void,
 
-    setMix: *const fn (?*SoundEffect, f32) callconv(.C) void,
-    setMixModulator: *const fn (?*SoundEffect, ?*PDSynthSignalValue) callconv(.C) void,
-    getMixModulator: *const fn (?*SoundEffect) callconv(.C) ?*PDSynthSignalValue,
+    setMix: *const fn (effect: ?*SoundEffect, level: f32) callconv(.C) void,
+    setMixModulator: *const fn (effect: ?*SoundEffect, signal: ?*PDSynthSignalValue) callconv(.C) void,
+    getMixModulator: *const fn (effect: ?*SoundEffect) callconv(.C) ?*PDSynthSignalValue,
 
-    setUserdata: *const fn (?*SoundEffect, ?*anyopaque) callconv(.C) void,
-    getUserdata: *const fn (?*SoundEffect) callconv(.C) ?*anyopaque,
+    setUserdata: *const fn (effect: ?*SoundEffect, userdata: ?*anyopaque) callconv(.C) void,
+    getUserdata: *const fn (effect: ?*SoundEffect) callconv(.C) ?*anyopaque,
 
-    //TODO fill in
-    twopolefilter: *const anyopaque, //*const struct_playdate_sound_effect_twopolefilter,
-    onepolefilter: *const anyopaque, //*const struct_playdate_sound_effect_onepolefilter,
-    bitcrusher: *const anyopaque, //*const struct_playdate_sound_effect_bitcrusher,
-    ringmodulator: *const anyopaque, //*const struct_playdate_sound_effect_ringmodulator,
-    delayline: *const anyopaque, //*const struct_playdate_sound_effect_delayline,
-    overdrive: *const anyopaque, //*const struct_playdate_sound_effect_overdrive,
+    twopolefilter: *const PlaydateSoundEffectTwopolefilter,
+    onepolefilter: *const PlaydateSoundEffectOnepolefilter,
+    bitcrusher: *const PlaydateSoundEffectBitcrusher,
+    ringmodulator: *const PlaydateSoundEffectRingmodulator,
+    delayline: *const PlaydateSoundEffectDelayline,
+    overdrive: *const PlaydateSoundEffectOverdrive,
 };
 pub const LFOType = enum(c_uint) {
     kLFOTypeSquare = 0,
@@ -622,117 +619,602 @@ pub const LFOType = enum(c_uint) {
     kLFOTypeFunction = 7,
 };
 pub const PDSynthLFO = opaque {};
-//TODO: fill in parameters
 pub const PlaydateSoundLFO = extern struct {
     newLFO: *const fn (LFOType) callconv(.C) ?*PDSynthLFO,
-    freeLFO: *const fn (?*PDSynthLFO) callconv(.C) void,
+    freeLFO: *const fn (lfo: ?*PDSynthLFO) callconv(.C) void,
 
-    setType: *const fn (?*PDSynthLFO, LFOType) callconv(.C) void,
-    setRate: *const fn (?*PDSynthLFO, f32) callconv(.C) void,
-    setPhase: *const fn (?*PDSynthLFO, f32) callconv(.C) void,
-    setCenter: *const fn (?*PDSynthLFO, f32) callconv(.C) void,
-    setDepth: *const fn (?*PDSynthLFO, f32) callconv(.C) void,
-    setArpeggiation: *const fn (?*PDSynthLFO, c_int, [*c]f32) callconv(.C) void,
-    setFunction: *const fn (?*PDSynthLFO, *const fn (?*PDSynthLFO, ?*anyopaque) callconv(.C) f32, ?*anyopaque, c_int) callconv(.C) void,
-    setDelay: *const fn (?*PDSynthLFO, f32, f32) callconv(.C) void,
-    setRetrigger: *const fn (?*PDSynthLFO, c_int) callconv(.C) void,
+    setType: *const fn (lfo: ?*PDSynthLFO, type: LFOType) callconv(.C) void,
+    setRate: *const fn (lfo: ?*PDSynthLFO, rate: f32) callconv(.C) void,
+    setPhase: *const fn (lfo: ?*PDSynthLFO, phase: f32) callconv(.C) void,
+    setCenter: *const fn (lfo: ?*PDSynthLFO, center: f32) callconv(.C) void,
+    setDepth: *const fn (lfo: ?*PDSynthLFO, depth: f32) callconv(.C) void,
+    setArpeggiation: *const fn (lfo: ?*PDSynthLFO, nSteps: c_int, steps: [*c]f32) callconv(.C) void,
+    setFunction: *const fn (lfo: ?*PDSynthLFO, lfoFunc: *const fn (lfo: ?*PDSynthLFO, userdata: ?*anyopaque) callconv(.C) f32, userdata: ?*anyopaque, interpolate: c_int) callconv(.C) void,
+    setDelay: *const fn (lfo: ?*PDSynthLFO, holdoff: f32, ramptime: f32) callconv(.C) void,
+    setRetrigger: *const fn (lfo: ?*PDSynthLFO, flag: c_int) callconv(.C) void,
 
-    getValue: *const fn (?*PDSynthLFO) callconv(.C) f32,
+    getValue: *const fn (lfo: ?*PDSynthLFO) callconv(.C) f32,
 
     // 1.10
-    setGlobal: *const fn (?*PDSynthLFO, c_int) callconv(.C) void,
+    setGlobal: *const fn (lfo: ?*PDSynthLFO, global: c_int) callconv(.C) void,
 };
 
 pub const PDSynthEnvelope = opaque {};
-//TODO: fill in parameters
 pub const PlaydateSoundEnvelope = extern struct {
-    newEnvelope: *const fn (f32, f32, f32, f32) callconv(.C) ?*PDSynthEnvelope,
-    freeEnvelope: *const fn (?*PDSynthEnvelope) callconv(.C) void,
+    newEnvelope: *const fn (attack: f32, decay: f32, sustain: f32, release: f32) callconv(.C) ?*PDSynthEnvelope,
+    freeEnvelope: *const fn (env: ?*PDSynthEnvelope) callconv(.C) void,
 
-    setAttack: *const fn (?*PDSynthEnvelope, f32) callconv(.C) void,
-    setDecay: *const fn (?*PDSynthEnvelope, f32) callconv(.C) void,
-    setSustain: *const fn (?*PDSynthEnvelope, f32) callconv(.C) void,
-    setRelease: *const fn (?*PDSynthEnvelope, f32) callconv(.C) void,
+    setAttack: *const fn (env: ?*PDSynthEnvelope, attack: f32) callconv(.C) void,
+    setDecay: *const fn (env: ?*PDSynthEnvelope, decay: f32) callconv(.C) void,
+    setSustain: *const fn (env: ?*PDSynthEnvelope, sustain: f32) callconv(.C) void,
+    setRelease: *const fn (env: ?*PDSynthEnvelope, release: f32) callconv(.C) void,
 
-    setLegato: *const fn (?*PDSynthEnvelope, c_int) callconv(.C) void,
-    setRetrigger: *const fn (?*PDSynthEnvelope, c_int) callconv(.C) void,
+    setLegato: *const fn (env: ?*PDSynthEnvelope, flag: c_int) callconv(.C) void,
+    setRetrigger: *const fn (env: ?*PDSynthEnvelope, flag: c_int) callconv(.C) void,
 
-    getValue: *const fn (?*PDSynthEnvelope) callconv(.C) f32,
+    getValue: *const fn (env: ?*PDSynthEnvelope) callconv(.C) f32,
 };
 
-//TODO: fill in parameters
 pub const PlaydateSoundSource = extern struct {
-    setVolume: *const fn (?*SoundSource, f32, f32) callconv(.C) void,
-    getVolume: *const fn (?*SoundSource, [*c]f32, [*c]f32) callconv(.C) void,
-    isPlaying: *const fn (?*SoundSource) callconv(.C) c_int,
-    setFinishCallback: *const fn (?*SoundSource, SndCallbackProc) callconv(.C) void,
+    setVolume: *const fn (c: ?*SoundSource, lvol: f32, rvol: f32) callconv(.C) void,
+    getVolume: *const fn (c: ?*SoundSource, outl: ?*f32, outr: ?*f32) callconv(.C) void,
+    isPlaying: *const fn (c: ?*SoundSource) callconv(.C) c_int,
+    setFinishCallback: *const fn (c: ?*SoundSource, SndCallbackProc) callconv(.C) void,
 };
 
 pub const ControlSignal = opaque {};
-//TODO: fill in parameters
 pub const PlaydateControlSignal = extern struct {
     newSignal: *const fn () callconv(.C) ?*ControlSignal,
-    freeSignal: *const fn (?*ControlSignal) callconv(.C) void,
-    clearEvents: *const fn (?*ControlSignal) callconv(.C) void,
-    addEvent: *const fn (?*ControlSignal, c_int, f32, c_int) callconv(.C) void,
-    removeEvent: *const fn (?*ControlSignal, c_int) callconv(.C) void,
-    getMIDIControllerNumber: *const fn (?*ControlSignal) callconv(.C) c_int,
+    freeSignal: *const fn (signal: ?*ControlSignal) callconv(.C) void,
+    clearEvents: *const fn (control: ?*ControlSignal) callconv(.C) void,
+    addEvent: *const fn (control: ?*ControlSignal, step: c_int, value: f32, c_int) callconv(.C) void,
+    removeEvent: *const fn (control: ?*ControlSignal, step: c_int) callconv(.C) void,
+    getMIDIControllerNumber: *const fn (control: ?*ControlSignal) callconv(.C) c_int,
 };
 
-//TODO: fill in parameters
 pub const PlaydateSoundTrack = extern struct {
     newTrack: *const fn () callconv(.C) ?*SequenceTrack,
-    freeTrack: *const fn (?*SequenceTrack) callconv(.C) void,
-    setInstrument: *const fn (?*SequenceTrack, ?*PDSynthInstrument) callconv(.C) void,
-    getInstrument: *const fn (?*SequenceTrack) callconv(.C) ?*PDSynthInstrument,
-    addNoteEvent: *const fn (?*SequenceTrack, u32, u32, MIDINote, f32) callconv(.C) void,
-    removeNoteEvent: *const fn (?*SequenceTrack, u32, MIDINote) callconv(.C) void,
-    clearNotes: *const fn (?*SequenceTrack) callconv(.C) void,
-    getControlSignalCount: *const fn (?*SequenceTrack) callconv(.C) c_int,
-    getControlSignal: *const fn (?*SequenceTrack, c_int) callconv(.C) ?*ControlSignal,
-    clearControlEvents: *const fn (?*SequenceTrack) callconv(.C) void,
-    getPolyphony: *const fn (?*SequenceTrack) callconv(.C) c_int,
-    activeVoiceCount: *const fn (?*SequenceTrack) callconv(.C) c_int,
-    setMuted: *const fn (?*SequenceTrack, c_int) callconv(.C) void,
-    getLength: *const fn (?*SequenceTrack) callconv(.C) u32,
-    getIndexForStep: *const fn (?*SequenceTrack, u32) callconv(.C) c_int,
-    getNoteAtIndex: *const fn (?*SequenceTrack, c_int, [*c]u32, [*c]u32, [*c]MIDINote, [*c]f32) callconv(.C) c_int,
-    getSignalForController: *const fn (?*SequenceTrack, c_int, c_int) callconv(.C) ?*ControlSignal,
+    freeTrack: *const fn (track: ?*SequenceTrack) callconv(.C) void,
+
+    setInstrument: *const fn (track: ?*SequenceTrack, inst: ?*PDSynthInstrument) callconv(.C) void,
+    getInstrument: *const fn (track: ?*SequenceTrack) callconv(.C) ?*PDSynthInstrument,
+
+    addNoteEvent: *const fn (track: ?*SequenceTrack, step: u32, len: u32, note: MIDINote, velocity: f32) callconv(.C) void,
+    removeNoteEvent: *const fn (track: ?*SequenceTrack, step: u32, note: MIDINote) callconv(.C) void,
+    clearNotes: *const fn (track: ?*SequenceTrack) callconv(.C) void,
+
+    getControlSignalCount: *const fn (track: ?*SequenceTrack) callconv(.C) c_int,
+    getControlSignal: *const fn (track: ?*SequenceTrack, idx: c_int) callconv(.C) ?*ControlSignal,
+    clearControlEvents: *const fn (track: ?*SequenceTrack) callconv(.C) void,
+
+    getPolyphony: *const fn (track: ?*SequenceTrack) callconv(.C) c_int,
+    activeVoiceCount: *const fn (track: ?*SequenceTrack) callconv(.C) c_int,
+
+    setMuted: *const fn (track: ?*SequenceTrack, mute: c_int) callconv(.C) void,
+
+    // 1.1
+    getLength: *const fn (track: ?*SequenceTrack) callconv(.C) u32,
+    getIndexForStep: *const fn (track: ?*SequenceTrack, step: u32) callconv(.C) c_int,
+    getNoteAtIndex: *const fn (track: ?*SequenceTrack, index: c_int, outSteo: ?*u32, outLen: ?*u32, outeNote: ?*MIDINote, outVelocity: ?*f32) callconv(.C) c_int,
+
+    //1.10
+    getSignalForController: *const fn (track: ?*SequenceTrack, controller: c_int, create: c_int) callconv(.C) ?*ControlSignal,
 };
-//TODO: fill in parameters
+
 pub const PDSynthInstrument = SoundSource;
 pub const PlaydateSoundInstrument = extern struct {
     newInstrument: *const fn () callconv(.C) ?*PDSynthInstrument,
-    freeInstrument: *const fn (?*PDSynthInstrument) callconv(.C) void,
-    addVoice: *const fn (?*PDSynthInstrument, ?*PDSynth, MIDINote, MIDINote, f32) callconv(.C) c_int,
-    playNote: *const fn (?*PDSynthInstrument, f32, f32, f32, u32) callconv(.C) ?*PDSynth,
-    playMIDINote: *const fn (?*PDSynthInstrument, MIDINote, f32, f32, u32) callconv(.C) ?*PDSynth,
-    setPitchBend: *const fn (?*PDSynthInstrument, f32) callconv(.C) void,
-    setPitchBendRange: *const fn (?*PDSynthInstrument, f32) callconv(.C) void,
-    setTranspose: *const fn (?*PDSynthInstrument, f32) callconv(.C) void,
-    noteOff: *const fn (?*PDSynthInstrument, MIDINote, u32) callconv(.C) void,
-    allNotesOff: *const fn (?*PDSynthInstrument, u32) callconv(.C) void,
-    setVolume: *const fn (?*PDSynthInstrument, f32, f32) callconv(.C) void,
-    getVolume: *const fn (?*PDSynthInstrument, [*c]f32, [*c]f32) callconv(.C) void,
-    activeVoiceCount: *const fn (?*PDSynthInstrument) callconv(.C) c_int,
+    freeInstrument: *const fn (inst: ?*PDSynthInstrument) callconv(.C) void,
+    addVoice: *const fn (inst: ?*PDSynthInstrument, synth: ?*PDSynth, rangeStart: MIDINote, rangeEnd: MIDINote, transpose: f32) callconv(.C) c_int,
+    playNote: *const fn (inst: ?*PDSynthInstrument, frequency: f32, vel: f32, len: f32, when: u32) callconv(.C) ?*PDSynth,
+    playMIDINote: *const fn (inst: ?*PDSynthInstrument, note: MIDINote, vel: f32, len: f32, when: u32) callconv(.C) ?*PDSynth,
+    setPitchBend: *const fn (inst: ?*PDSynthInstrument, bend: f32) callconv(.C) void,
+    setPitchBendRange: *const fn (inst: ?*PDSynthInstrument, halfSteps: f32) callconv(.C) void,
+    setTranspose: *const fn (inst: ?*PDSynthInstrument, halfSteps: f32) callconv(.C) void,
+    noteOff: *const fn (inst: ?*PDSynthInstrument, note: MIDINote, when: u32) callconv(.C) void,
+    allNotesOff: *const fn (inst: ?*PDSynthInstrument, when: u32) callconv(.C) void,
+    setVolume: *const fn (inst: ?*PDSynthInstrument, left: f32, right: f32) callconv(.C) void,
+    getVolume: *const fn (inst: ?*PDSynthInstrument, left: ?*f32, right: ?*f32) callconv(.C) void,
+    activeVoiceCount: *const fn (inst: ?*PDSynthInstrument) callconv(.C) c_int,
 };
 
 pub const PDSynthSignal = opaque {};
-
 pub const SignalStepFunc = *const fn (userdata: ?*anyopaque, ioframes: [*c]c_int, ifval: ?*f32) callconv(.C) f32;
-
 // len = -1 for indefinite
 pub const SignalNoteOnFunc = *const fn (userdata: ?*anyopaque, note: MIDINote, vel: f32, len: f32) callconv(.C) void;
 // ended = 0 for note release, = 1 when note stops playing
 pub const SignalNoteOffFunc = *const fn (userdata: ?*anyopaque, stopped: c_int, offset: c_int) callconv(.C) void;
-
 pub const SignalDeallocFunc = *const fn (userdata: ?*anyopaque) callconv(.C) void;
-
-//TODO: fill in parameters
 pub const PlaydateSoundSignal = struct {
-    newSignal: ?*const fn (SignalStepFunc, SignalNoteOnFunc, SignalNoteOffFunc, SignalDeallocFunc, ?*anyopaque) callconv(.C) ?*PDSynthSignal,
-    freeSignal: ?*const fn (?*PDSynthSignal) callconv(.C) void,
-    getValue: ?*const fn (?*PDSynthSignal) callconv(.C) f32,
-    setValueScale: ?*const fn (?*PDSynthSignal, f32) callconv(.C) void,
-    setValueOffset: ?*const fn (?*PDSynthSignal, f32) callconv(.C) void,
+    newSignal: *const fn (step: SignalStepFunc, noteOn: SignalNoteOnFunc, noteOff: SignalNoteOffFunc, dealloc: SignalDeallocFunc, userdata: ?*anyopaque) callconv(.C) ?*PDSynthSignal,
+    freeSignal: *const fn (signal: ?*PDSynthSignal) callconv(.C) void,
+    getValue: *const fn (signal: ?*PDSynthSignal) callconv(.C) f32,
+    setValueScale: *const fn (signal: ?*PDSynthSignal, scale: f32) callconv(.C) void,
+    setValueOffset: *const fn (signal: ?*PDSynthSignal, offset: f32) callconv(.C) void,
+};
+
+// EFFECTS
+
+// A SoundEffect processes the output of a channel's SoundSources
+
+const TwoPoleFilter = SoundEffect;
+const TwoPoleFilterType = enum(c_int) {
+    FilterTypeLowPass,
+    FilterTypeHighPass,
+    FilterTypeBandPass,
+    FilterTypeNotch,
+    FilterTypePEQ,
+    FilterTypeLowShelf,
+    FilterTypeHighShelf,
+};
+const PlaydateSoundEffectTwopolefilter = extern struct {
+    newFilter: *const fn () callconv(.C) ?*TwoPoleFilter,
+    freeFilter: *const fn (filter: ?*TwoPoleFilter) callconv(.C) void,
+    setType: *const fn (filter: ?*TwoPoleFilter, type: TwoPoleFilterType) callconv(.C) void,
+    setFrequency: *const fn (filter: ?*TwoPoleFilter, frequency: f32) callconv(.C) void,
+    setFrequencyModulator: *const fn (filter: ?*TwoPoleFilter, signal: ?*PDSynthSignalValue) callconv(.C) void,
+    getFrequencyModulator: *const fn (filter: ?*TwoPoleFilter) callconv(.C) ?*PDSynthSignalValue,
+    setGain: *const fn (filter: ?*TwoPoleFilter, f32) callconv(.C) void,
+    setResonance: *const fn (filter: ?*TwoPoleFilter, f32) callconv(.C) void,
+    setResonanceModulator: *const fn (filter: ?*TwoPoleFilter, signal: ?*PDSynthSignalValue) callconv(.C) void,
+    getResonanceModulator: *const fn (filter: ?*TwoPoleFilter) callconv(.C) ?*PDSynthSignalValue,
+};
+
+pub const OnePoleFilter = SoundEffect;
+pub const PlaydateSoundEffectOnepolefilter = extern struct {
+    newFilter: *const fn () callconv(.C) ?*OnePoleFilter,
+    freeFilter: *const fn (filter: ?*OnePoleFilter) callconv(.C) void,
+    setParameter: *const fn (filter: ?*OnePoleFilter, parameter: f32) callconv(.C) void,
+    setParameterModulator: *const fn (filter: ?*OnePoleFilter, signal: ?*PDSynthSignalValue) callconv(.C) void,
+    getParameterModulator: *const fn (filter: ?*OnePoleFilter) callconv(.C) ?*PDSynthSignalValue,
+};
+
+pub const BitCrusher = SoundEffect;
+pub const PlaydateSoundEffectBitcrusher = extern struct {
+    newBitCrusher: *const fn () callconv(.C) ?*BitCrusher,
+    freeBitCrusher: *const fn (filter: ?*BitCrusher) callconv(.C) void,
+    setAmount: *const fn (filter: ?*BitCrusher, amount: f32) callconv(.C) void,
+    setAmountModulator: *const fn (filter: ?*BitCrusher, signal: ?*PDSynthSignalValue) callconv(.C) void,
+    getAmountModulator: *const fn (filter: ?*BitCrusher) callconv(.C) ?*PDSynthSignalValue,
+    setUndersampling: *const fn (filter: ?*BitCrusher, undersampling: f32) callconv(.C) void,
+    setUndersampleModulator: *const fn (filter: ?*BitCrusher, signal: ?*PDSynthSignalValue) callconv(.C) void,
+    getUndersampleModulator: *const fn (filter: ?*BitCrusher) callconv(.C) ?*PDSynthSignalValue,
+};
+
+pub const RingModulator = SoundEffect;
+pub const PlaydateSoundEffectRingmodulator = extern struct {
+    newRingmod: *const fn () callconv(.C) ?*RingModulator,
+    freeRingmod: *const fn (filter: ?*RingModulator) callconv(.C) void,
+    setFrequency: *const fn (filter: ?*RingModulator, frequency: f32) callconv(.C) void,
+    setFrequencyModulator: *const fn (filter: ?*RingModulator, signal: ?*PDSynthSignalValue) callconv(.C) void,
+    getFrequencyModulator: *const fn (filter: ?*RingModulator) callconv(.C) ?*PDSynthSignalValue,
+};
+
+pub const DelayLine = SoundEffect;
+pub const DelayLineTap = SoundSource;
+pub const PlaydateSoundEffectDelayline = extern struct {
+    newDelayLine: *const fn (length: c_int, stereo: c_int) callconv(.C) ?*DelayLine,
+    freeDelayLine: *const fn (filter: ?*DelayLine) callconv(.C) void,
+    setLength: *const fn (filter: ?*DelayLine, frames: c_int) callconv(.C) void,
+    setFeedback: *const fn (filter: ?*DelayLine, fb: f32) callconv(.C) void,
+    addTap: *const fn (filter: ?*DelayLine, delay: c_int) callconv(.C) ?*DelayLineTap,
+
+    // note that DelayLineTap is a SoundSource, not a SoundEffect
+    freeTap: *const fn (tap: ?*DelayLineTap) callconv(.C) void,
+    setTapDelay: *const fn (t: ?*DelayLineTap, frames: c_int) callconv(.C) void,
+    setTapDelayModulator: *const fn (t: ?*DelayLineTap, mod: ?*PDSynthSignalValue) callconv(.C) void,
+    getTapDelayModulator: *const fn (t: ?*DelayLineTap) callconv(.C) ?*PDSynthSignalValue,
+    setTapChannelsFlipped: *const fn (t: ?*DelayLineTap, flip: c_int) callconv(.C) void,
+};
+
+pub const Overdrive = SoundEffect;
+pub const PlaydateSoundEffectOverdrive = extern struct {
+    newOverdrive: *const fn () callconv(.C) ?*Overdrive,
+    freeOverdrive: *const fn (filter: ?*Overdrive) callconv(.C) void,
+    setGain: *const fn (o: ?*Overdrive, gain: f32) callconv(.C) void,
+    setLimit: *const fn (o: ?*Overdrive, limit: f32) callconv(.C) void,
+    setLimitModulator: *const fn (o: ?*Overdrive, mod: ?*PDSynthSignalValue) callconv(.C) void,
+    getLimitModulator: *const fn (o: ?*Overdrive) callconv(.C) ?*PDSynthSignalValue,
+    setOffset: *const fn (o: ?*Overdrive, offset: f32) callconv(.C) void,
+    setOffsetModulator: *const fn (o: ?*Overdrive, mod: ?*PDSynthSignalValue) callconv(.C) void,
+    getOffsetModulator: *const fn (o: ?*Overdrive) callconv(.C) ?*PDSynthSignalValue,
+};
+
+//////Sprite/////
+pub const SpriteCollisionResponseType = enum(c_int) {
+    CollisionTypeSlide,
+    CollisionTypeFreeze,
+    CollisionTypeOverlap,
+    CollisionTypeBounce,
+};
+pub const PDRect = extern struct {
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+};
+
+pub fn PDRectMake(x: f32, y: f32, width: f32, height: f32) callconv(.C) PDRect {
+    return .{
+        .x = x,
+        .y = y,
+        .width = width,
+        .height = height,
+    };
+}
+
+pub const CollisionPoint = extern struct {
+    x: f32,
+    y: f32,
+};
+pub const CollisionVector = extern struct {
+    x: c_int,
+    y: c_int,
+};
+
+pub const SpriteCollisionInfo = extern struct {
+    sprite: ?*LCDSprite, // The sprite being moved
+    other: ?*LCDSprite, // The sprite being moved
+    responseType: SpriteCollisionResponseType, // The result of collisionResponse
+    overlaps: u8, // True if the sprite was overlapping other when the collision started. False if it didn’t overlap but tunneled through other.
+    ti: f32, // A number between 0 and 1 indicating how far along the movement to the goal the collision occurred
+    move: CollisionPoint, // The difference between the original coordinates and the actual ones when the collision happened
+    normal: CollisionVector, // The collision normal; usually -1, 0, or 1 in x and y. Use this value to determine things like if your character is touching the ground.
+    touch: CollisionPoint, // The coordinates where the sprite started touching other
+    spriteRect: PDRect, // The rectangle the sprite occupied when the touch happened
+    otherRect: PDRect, // The rectangle the sprite being collided with occupied when the touch happened
+};
+
+pub const SpriteQueryInfo = extern struct {
+    sprite: ?*LCDSprite, // The sprite being intersected by the segment
+    // ti1 and ti2 are numbers between 0 and 1 which indicate how far from the starting point of the line segment the collision happened
+    ti1: f32, // entry point
+    ti2: f32, // exit point
+    entryPoint: CollisionPoint, // The coordinates of the first intersection between sprite and the line segment
+    exitPoint: CollisionPoint, // The coordinates of the second intersection between sprite and the line segment
+};
+
+pub const LCDSprite = opaque {};
+pub const CWCollisionInfo = opaque {};
+pub const CWItemInfo = opaque {};
+
+pub const LCDSpriteDrawFunction = ?*const fn (sprite: ?*LCDSprite, bounds: PDRect, drawrect: PDRect) callconv(.C) void;
+pub const LCDSpriteUpdateFunction = ?*const fn (sprite: ?*LCDSprite) callconv(.C) void;
+pub const LCDSpriteCollisionFilterProc = ?*const fn (sprite: ?*LCDSprite, other: ?*LCDSprite) callconv(.C) SpriteCollisionResponseType;
+
+pub const PlaydateSprite = extern struct {
+    setAlwaysRedraw: *const fn (flag: c_int) callconv(.C) void,
+    addDirtyRect: *const fn (dirtyRect: LCDRect) callconv(.C) void,
+    drawSprites: *const fn () callconv(.C) void,
+    updateAndDrawSprites: *const fn () callconv(.C) void,
+
+    newSprite: *const fn () callconv(.C) ?*LCDSprite,
+    freeSprite: *const fn (sprite: ?*LCDSprite) callconv(.C) void,
+    copy: *const fn (sprite: ?*LCDSprite) callconv(.C) ?*LCDSprite,
+
+    addSprite: *const fn (sprite: ?*LCDSprite) callconv(.C) void,
+    removeSprite: *const fn (sprite: ?*LCDSprite) callconv(.C) void,
+    removeSprites: *const fn (sprite: [*c]?*LCDSprite, count: c_int) callconv(.C) void,
+    removeAllSprites: *const fn () callconv(.C) void,
+    getSpriteCount: *const fn () callconv(.C) c_int,
+
+    setBounds: *const fn (sprite: ?*LCDSprite, bounds: PDRect) callconv(.C) void,
+    getBounds: *const fn (sprite: ?*LCDSprite) callconv(.C) PDRect,
+    moveTo: *const fn (sprite: ?*LCDSprite, x: f32, y: f32) callconv(.C) void,
+    moveBy: *const fn (sprite: ?*LCDSprite, dx: f32, dy: f32) callconv(.C) void,
+
+    setImage: *const fn (sprite: ?*LCDSprite, image: ?*LCDBitmap, flip: LCDBitmapFlip) callconv(.C) void,
+    getImage: *const fn (sprite: ?*LCDSprite) callconv(.C) ?*LCDBitmap,
+    setSize: *const fn (s: ?*LCDSprite, width: f32, height: f32) callconv(.C) void,
+    setZIndex: *const fn (s: ?*LCDSprite, zIndex: i16) callconv(.C) void,
+    getZIndex: *const fn (sprite: ?*LCDSprite) callconv(.C) i16,
+
+    setDrawMode: *const fn (sprite: ?*LCDSprite, mode: LCDBitmapDrawMode) callconv(.C) void,
+    setImageFlip: *const fn (sprite: ?*LCDSprite, flip: LCDBitmapFlip) callconv(.C) void,
+    getImageFlip: *const fn (sprite: ?*LCDSprite) callconv(.C) LCDBitmapFlip,
+    setStencil: *const fn (sprite: ?*LCDSprite, mode: ?*LCDBitmap) callconv(.C) void, // deprecated in favor of setStencilImage()
+
+    setClipRect: *const fn (sprite: ?*LCDSprite, clipRect: LCDRect) callconv(.C) void,
+    clearClipRect: *const fn (sprite: ?*LCDSprite) callconv(.C) void,
+    setClipRectsInRange: *const fn (clipRect: LCDRect, startZ: c_int, endZ: c_int) callconv(.C) void,
+    clearClipRectsInRange: *const fn (startZ: c_int, endZ: c_int) callconv(.C) void,
+
+    setUpdatesEnabled: *const fn (sprite: ?*LCDSprite, flag: c_int) callconv(.C) void,
+    updatesEnabled: *const fn (sprite: ?*LCDSprite) callconv(.C) c_int,
+    setCollisionsEnabled: *const fn (sprite: ?*LCDSprite, flag: c_int) callconv(.C) void,
+    collisionsEnabled: *const fn (sprite: ?*LCDSprite) callconv(.C) c_int,
+    setVisible: *const fn (sprite: ?*LCDSprite, flag: c_int) callconv(.C) void,
+    isVisible: *const fn (sprite: ?*LCDSprite) callconv(.C) c_int,
+    setOpaque: *const fn (sprite: ?*LCDSprite, flag: c_int) callconv(.C) void,
+    markDirty: *const fn (sprite: ?*LCDSprite) callconv(.C) void,
+
+    setTag: *const fn (sprite: ?*LCDSprite, tag: u8) callconv(.C) void,
+    getTag: *const fn (sprite: ?*LCDSprite) callconv(.C) u8,
+
+    setIgnoresDrawOffset: *const fn (sprite: ?*LCDSprite, flag: c_int) callconv(.C) void,
+
+    setUpdateFunction: *const fn (sprite: ?*LCDSprite, func: LCDSpriteUpdateFunction) callconv(.C) void,
+    setDrawFunction: *const fn (sprite: ?*LCDSprite, func: LCDSpriteDrawFunction) callconv(.C) void,
+
+    getPosition: *const fn (s: ?*LCDSprite, x: ?*f32, y: ?*f32) callconv(.C) void,
+
+    // Collisions
+    resetCollisionWorld: *const fn () callconv(.C) void,
+
+    setCollideRect: *const fn (sprite: ?*LCDSprite, collideRect: PDRect) callconv(.C) void,
+    getCollideRect: *const fn (sprite: ?*LCDSprite) callconv(.C) PDRect,
+    clearCollideRect: *const fn (sprite: ?*LCDSprite) callconv(.C) void,
+
+    // caller is responsible for freeing the returned array for all collision methods
+    setCollisionResponseFunction: *const fn (sprite: ?*LCDSprite, func: LCDSpriteCollisionFilterProc) callconv(.C) void,
+    checkCollisions: *const fn (sprite: ?*LCDSprite, goalX: f32, goalY: f32, actualX: ?*f32, actualY: ?*f32, len: ?*c_int) callconv(.C) [*c]SpriteCollisionInfo, // access results using const info = &results[i];
+    moveWithCollisions: *const fn (sprite: ?*LCDSprite, goalX: f32, goalY: f32, actualX: ?*f32, actualY: ?*f32, len: ?*c_int) callconv(.C) [*c]SpriteCollisionInfo,
+    querySpritesAtPoint: *const fn (x: f32, y: f32, len: ?*c_int) callconv(.C) [*c]?*LCDSprite,
+    querySpritesInRect: *const fn (x: f32, y: f32, width: f32, height: f32, len: ?*c_int) callconv(.C) [*c]?*LCDSprite,
+    querySpritesAlongLine: *const fn (x1: f32, y1: f32, x2: f32, y2: f32, len: ?*c_int) callconv(.C) [*c]?*LCDSprite,
+    querySpriteInfoAlongLine: *const fn (x1: f32, y1: f32, x2: f32, y2: f32, len: ?*c_int) callconv(.C) [*c]SpriteQueryInfo, // access results using const info = &results[i];
+    overlappingSprites: *const fn (sprite: ?*LCDSprite, len: ?*c_int) callconv(.C) [*c]?*LCDSprite,
+    allOverlappingSprites: *const fn (len: ?*c_int) callconv(.C) [*c]?*LCDSprite,
+
+    // added in 1.7
+    setStencilPattern: *const fn (sprite: ?*LCDSprite, pattern: [*c]u8) callconv(.C) void, //pattern is 8 bytes
+    clearStencil: *const fn (sprite: ?*LCDSprite) callconv(.C) void,
+
+    setUserdata: *const fn (sprite: ?*LCDSprite, userdata: ?*anyopaque) callconv(.C) void,
+    getUserdata: *const fn (sprite: ?*LCDSprite) callconv(.C) ?*anyopaque,
+
+    // added in 1.10
+    setStencilImage: *const fn (sprite: ?*LCDSprite, stencil: ?*LCDBitmap, tile: c_int) callconv(.C) void,
+};
+
+////////Lua///////
+pub const LuaState = ?*anyopaque;
+pub const LuaCFunction = ?*const fn (state: ?*LuaState) callconv(.C) c_int;
+pub const LuaUDObject = opaque {};
+
+//literal value
+pub const LValType = enum(c_int) {
+    Int = 0,
+    Float = 1,
+    Str = 2,
+};
+pub const LuaReg = extern struct {
+    name: [*c]const u8,
+    func: LuaCFunction,
+};
+pub const LuaType = enum(c_int) {
+    TypeNil = 0,
+    TypeBool = 1,
+    TypeInt = 2,
+    TypeFloat = 3,
+    TypeString = 4,
+    TypeTable = 5,
+    TypeFunction = 6,
+    TypeThread = 7,
+    TypeObject = 8,
+};
+pub const LuaVal = extern struct {
+    name: [*c]const u8,
+    type: LValType,
+    v: extern union {
+        intval: c_uint,
+        floatval: f32,
+        strval: [*c]const u8,
+    },
+};
+pub const PlaydateLua = extern struct {
+    // these two return 1 on success, else 0 with an error message in outErr
+    addFunction: *const fn (f: LuaCFunction, name: [*c]const u8, outErr: ?*[*c]const u8) callconv(.C) c_int,
+    registerClass: *const fn (name: [*c]const u8, reg: ?*const LuaReg, vals: [*c]const LuaVal, isstatic: c_int, outErr: ?*[*c]const u8) callconv(.C) c_int,
+
+    pushFunction: *const fn (f: LuaCFunction) callconv(.C) void,
+    indexMetatable: *const fn () callconv(.C) c_int,
+
+    stop: *const fn () callconv(.C) void,
+    start: *const fn () callconv(.C) void,
+
+    // stack operations
+    getArgCount: *const fn () callconv(.C) c_int,
+    getArgType: *const fn (pos: c_int, outClass: ?*[*c]const u8) callconv(.C) LuaType,
+
+    argIsNil: *const fn (pos: c_int) callconv(.C) c_int,
+    getArgBool: *const fn (pos: c_int) callconv(.C) c_int,
+    getArgInt: *const fn (pos: c_int) callconv(.C) c_int,
+    getArgFloat: *const fn (pos: c_int) callconv(.C) f32,
+    getArgString: *const fn (pos: c_int) callconv(.C) [*c]const u8,
+    getArgBytes: *const fn (pos: c_int, outlen: ?*usize) callconv(.C) [*c]const u8,
+    getArgObject: *const fn (pos: c_int, type: ?*i8, ?*?*LuaUDObject) callconv(.C) ?*anyopaque,
+
+    getBitmap: *const fn (c_int) callconv(.C) ?*LCDBitmap,
+    getSprite: *const fn (c_int) callconv(.C) ?*LCDSprite,
+
+    // for returning values back to Lua
+    pushNil: *const fn () callconv(.C) void,
+    pushBool: *const fn (val: c_int) callconv(.C) void,
+    pushInt: *const fn (val: c_int) callconv(.C) void,
+    pushFloat: *const fn (val: f32) callconv(.C) void,
+    pushString: *const fn (str: [*c]const u8) callconv(.C) void,
+    pushBytes: *const fn (str: [*c]const u8, len: usize) callconv(.C) void,
+    pushBitmap: *const fn (bitmap: ?*LCDBitmap) callconv(.C) void,
+    pushSprite: *const fn (sprite: ?*LCDSprite) callconv(.C) void,
+
+    pushObject: *const fn (obj: ?*anyopaque, type: ?*i8, nValues: c_int) callconv(.C) ?*LuaUDObject,
+    retainObject: *const fn (obj: ?*LuaUDObject) callconv(.C) ?*LuaUDObject,
+    releaseObject: *const fn (obj: ?*LuaUDObject) callconv(.C) void,
+
+    setObjectValue: *const fn (obj: ?*LuaUDObject, slot: c_int) callconv(.C) void,
+    getObjectValue: *const fn (obj: ?*LuaUDObject, slot: c_int) callconv(.C) c_int,
+
+    // calling lua from C has some overhead. use sparingly!
+    callFunction_deprecated: *const fn (name: [*c]const u8, nargs: c_int) callconv(.C) void,
+    callFunction: *const fn (name: [*c]const u8, nargs: c_int, outerr: ?*[*c]const u8) callconv(.C) c_int,
+};
+
+///////JSON///////
+pub const JSONValueType = enum(c_int) {
+    JSONNull = 0,
+    JSONTrue = 1,
+    JSONFalse = 2,
+    JSONInteger = 3,
+    JSONFloat = 4,
+    JSONString = 5,
+    JSONArray = 6,
+    JSONTable = 7,
+};
+pub const JSONValue = extern struct {
+    type: u8,
+    data: extern union {
+        intval: c_int,
+        floatval: f32,
+        stringval: [*c]u8,
+        arrayval: ?*anyopaque,
+        tableval: ?*anyopaque,
+    },
+};
+pub inline fn json_intValue(value: JSONValue) c_int {
+    switch (@intToEnum(JSONValueType, value.type)) {
+        .JSONInteger => return value.data.intval,
+        .JSONFloat => return @floatToInt(c_int, value.data.floatval),
+        .JSONString => return std.fmt.parseInt(c_int, std.mem.span(value.data.stringval), 10) catch 0,
+        .JSONTrue => return 1,
+        else => return 0,
+    }
+}
+pub inline fn json_floatValue(value: JSONValue) f32 {
+    switch (@intToEnum(JSONValueType, value.type)) {
+        .JSONInteger => return @intToFloat(f32, value.data.intval),
+        .JSONFloat => return value.data.floatval,
+        .JSONString => return 0,
+        .JSONTrue => return @floatCast(f32, 1.0),
+        else => return @floatCast(f32, 0.0),
+    }
+}
+pub inline fn json_boolValue(value: JSONValue) c_int {
+    return if (@intToEnum(JSONValueType, value.type) == .JSONString)
+        @boolToInt(value.data.stringval[0] != 0)
+    else
+        json_intValue(value);
+}
+pub inline fn json_stringValue(value: JSONValue) [*c]u8 {
+    return if (@intToEnum(JSONValueType, value.type) == .JSONString)
+        value.data.stringval
+    else
+        null;
+}
+
+// decoder
+
+pub const JSONDecoder = extern struct {
+    decodeError: *const fn (decoder: ?*JSONDecoder, @"error": [*c]const u8, linenum: c_int) callconv(.C) void,
+
+    // the following functions are each optional
+    willDecodeSublist: ?*const fn (decoder: ?*JSONDecoder, name: [*c]const u8, type: JSONValueType) callconv(.C) void,
+    shouldDecodeTableValueForKey: ?*const fn (decoder: ?*JSONDecoder, key: [*c]const u8) callconv(.C) c_int,
+    didDecodeTableValue: ?*const fn (decoder: ?*JSONDecoder, key: [*c]const u8, value: JSONValue) callconv(.C) void,
+    shouldDecodeArrayValueAtIndex: ?*const fn (decoder: ?*JSONDecoder, pos: c_int) callconv(.C) c_int,
+    didDecodeArrayValue: ?*const fn (decoder: ?*JSONDecoder, pos: c_int, value: JSONValue) callconv(.C) void,
+    didDecodeSublist: ?*const fn (decoder: ?*JSONDecoder, name: [*c]const u8, type: JSONValueType) callconv(.C) ?*anyopaque,
+
+    userdata: ?*anyopaque,
+    returnString: c_int, // when set, the decoder skips parsing and returns the current subtree as a string
+    path: [*c]const u8, // updated during parsing, reflects current position in tree
+};
+
+// convenience functions for setting up a table-only or array-only decoder
+
+pub inline fn json_setTableDecode(
+    decoder: ?*JSONDecoder,
+    willDecodeSublist: ?*const fn (decoder: ?*JSONDecoder, name: [*c]const u8, type: JSONValueType) callconv(.C) void,
+    didDecodeTableValue: ?*const fn (decoder: ?*JSONDecoder, key: [*c]const u8, value: JSONValue) callconv(.C) void,
+    didDecodeSublist: ?*const fn (decoder: ?*JSONDecoder, name: [*c]const u8, name: JSONValueType) callconv(.C) ?*anyopaque,
+) void {
+    decoder.?.didDecodeTableValue = didDecodeTableValue;
+    decoder.?.didDecodeArrayValue = null;
+    decoder.?.willDecodeSublist = willDecodeSublist;
+    decoder.?.didDecodeSublist = didDecodeSublist;
+}
+
+pub inline fn json_setArrayDecode(
+    decoder: ?*JSONDecoder,
+    willDecodeSublist: ?*const fn (decoder: ?*JSONDecoder, name: [*c]const u8, type: JSONValueType) callconv(.C) void,
+    didDecodeArrayValue: ?*const fn (decoder: ?*JSONDecoder, pos: c_int, value: JSONValue) callconv(.C) void,
+    didDecodeSublist: ?*const fn (decoder: ?*JSONDecoder, name: [*c]const u8, type: JSONValueType) callconv(.C) ?*anyopaque,
+) void {
+    decoder.?.didDecodeTableValue = null;
+    decoder.?.didDecodeArrayValue = didDecodeArrayValue;
+    decoder.?.willDecodeSublist = willDecodeSublist;
+    decoder.?.didDecodeSublist = didDecodeSublist;
+}
+
+pub const JSONReader = extern struct {
+    read: *const fn (userdata: ?*anyopaque, buf: [*c]u8, bufsize: c_int) callconv(.C) c_int,
+    userdata: ?*anyopaque,
+};
+pub const writeFunc = *const fn (userdata: ?*anyopaque, str: [*c]const u8, len: c_int) callconv(.C) void;
+
+pub const JSONEncoder = extern struct {
+    writeStringFunc: writeFunc,
+    userdata: ?*anyopaque,
+
+    state: u32, //this is pretty, startedTable, startedArray and depth bitfields combined
+
+    startArray: *const fn (encoder: ?*JSONEncoder) callconv(.C) void,
+    addArrayMember: *const fn (encoder: ?*JSONEncoder) callconv(.C) void,
+    endArray: *const fn (encoder: ?*JSONEncoder) callconv(.C) void,
+    startTable: *const fn (encoder: ?*JSONEncoder) callconv(.C) void,
+    addTableMember: *const fn (encoder: ?*JSONEncoder, name: [*c]const u8, len: c_int) callconv(.C) void,
+    endTable: *const fn (encoder: ?*JSONEncoder) callconv(.C) void,
+    writeNull: *const fn (encoder: ?*JSONEncoder) callconv(.C) void,
+    writeFalse: *const fn (encoder: ?*JSONEncoder) callconv(.C) void,
+    writeTrue: *const fn (encoder: ?*JSONEncoder) callconv(.C) void,
+    writeInt: *const fn (encoder: ?*JSONEncoder, num: c_int) callconv(.C) void,
+    writeDouble: *const fn (encoder: ?*JSONEncoder, num: f64) callconv(.C) void,
+    writeString: *const fn (encoder: ?*JSONEncoder, str: [*c]const u8, len: c_int) callconv(.C) void,
+};
+
+pub const PlaydateJSON = extern struct {
+    initEncoder: *const fn (encoder: ?*JSONEncoder, write: writeFunc, userdata: ?*anyopaque, pretty: c_int) callconv(.C) void,
+
+    decode: *const fn (functions: ?*JSONDecoder, reader: JSONReader, outval: ?*JSONValue) callconv(.C) c_int,
+    decodeString: *const fn (functions: ?*JSONDecoder, jsonString: [*c]const u8, outval: ?*JSONValue) callconv(.C) c_int,
+};
+
+///////Scoreboards///////////
+pub const PDScore = extern struct {
+    rank: u32,
+    value: u32,
+    player: [*c]u8,
+};
+pub const PDScoresList = extern struct {
+    boardID: [*c]u8,
+    count: c_uint,
+    lastUpdated: u32,
+    playerIncluded: c_int,
+    limit: c_uint,
+    scores: [*c]PDScore,
+};
+pub const PDBoard = extern struct {
+    boardID: [*c]u8,
+    name: [*c]u8,
+};
+pub const PDBoardsList = extern struct {
+    count: c_uint,
+    lastUpdated: u32,
+    boards: [*c]PDBoard,
+};
+pub const AddScoreCallback = ?*const fn (score: ?*PDScore, errorMessage: [*c]const u8) callconv(.C) void;
+pub const PersonalBestCallback = ?*const fn (score: ?*PDScore, errorMessage: [*c]const u8) callconv(.C) void;
+pub const BoardsListCallback = ?*const fn (boards: ?*PDBoardsList, errorMessage: [*c]const u8) callconv(.C) void;
+pub const ScoresCallback = ?*const fn (scores: ?*PDScoresList, errorMessage: [*c]const u8) callconv(.C) void;
+
+pub const PlaydateScoreboards = extern struct {
+    addScore: *const fn (boardId: [*c]const u8, value: u32, callback: AddScoreCallback) callconv(.C) c_int,
+    getPersonalBest: *const fn (boardId: [*c]const u8, callback: PersonalBestCallback) callconv(.C) c_int,
+    freeScore: *const fn (score: ?*PDScore) callconv(.C) void,
+
+    getScoreboards: *const fn (callback: BoardsListCallback) callconv(.C) c_int,
+    freeBoardsList: *const fn (boards: ?*PDBoardsList) callconv(.C) void,
+
+    getScores: *const fn (boardId: [*c]const u8, callback: ScoresCallback) callconv(.C) c_int,
+    freeScoresList: *const fn (scores: ?*PDScoresList) callconv(.C) void,
 };

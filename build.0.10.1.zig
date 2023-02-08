@@ -2,38 +2,33 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 pub fn build(b: *std.build.Builder) !void {
-    const optimize = b.standardOptimizeOption(.{});
+    // Standard release options allow the person running `zig build` to select
+    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
+    const mode = b.standardReleaseOptions();
 
     const pdx_file_name = "example.pdx";
 
-    const lib = b.addSharedLibrary(.{
-        .name = "pdex",
-        .root_source_file = .{ .path = "src/main.zig" },
-        .optimize = optimize,
-        .target = .{},
-    });
+    const lib = b.addSharedLibrary("pdex", "src/main.zig", .unversioned);
 
     const output_path = try std.fs.path.join(b.allocator, &.{ b.install_path, "Source" });
     lib.setOutputDir(output_path);
 
+    lib.setBuildMode(mode);
     lib.install();
 
-    const playdate_target = try std.zig.CrossTarget.parse(.{
-        .arch_os_abi = "thumb-freestanding-eabihf",
-        .cpu_features = "cortex_m7-fp64-fp_armv8d16-fpregs64-vfp2-vfp3d16-vfp4d16",
-    });
-    const game_elf = b.addExecutable(.{
-        .name = "pdex.elf",
-        .root_source_file = .{ .path = "src/playdate_hardware_main.zig" },
-        .target = playdate_target,
-        .optimize = optimize,
-    });
+    const game_elf = b.addExecutable("pdex.elf", "src/playdate_hardware_main.zig");
     game_elf.step.dependOn(&lib.step);
     game_elf.link_function_sections = true;
     game_elf.stack_size = 61800;
     game_elf.setLinkerScriptPath(.{ .path = "link_map.ld" });
     game_elf.setOutputDir(b.install_path);
-    if (optimize == .ReleaseFast) {
+    game_elf.setBuildMode(mode);
+    const playdate_target = try std.zig.CrossTarget.parse(.{
+        .arch_os_abi = "thumb-freestanding-eabihf",
+        .cpu_features = "cortex_m7-fp64-fp_armv8d16-fpregs64-vfp2-vfp3d16-vfp4d16",
+    });
+    game_elf.setTarget(playdate_target);
+    if (b.is_release) {
         game_elf.omit_frame_pointer = true;
     }
     game_elf.install();

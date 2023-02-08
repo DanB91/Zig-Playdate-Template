@@ -5,7 +5,7 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 
 ##  <a name="Requirements"></a>Requirements
 - Either macOS, Windows, or Linux.
-- Zig compiler that supports the "stage 2" self-hosted compiler.  Tested on 0.11.0, but in theory should support 0.10.0.
+- Zig compiler that supports the "stage 2" self-hosted compiler.  Tested on 0.11.0, but should support 0.10.1.
 - [Playdate SDK](https://play.date/dev/) installed.
 - Binutils:
     - GNU `objcopy` is required to be in your `PATH` on macOS, while `arm-none-eabi-objcopy` is required for Linux and Windows.
@@ -23,6 +23,7 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 ## Run Example Code
 1. Make sure the Playdate SDK is installed, Zig is installed and in your PATH, and all other [requirements](#Requirements) are met.
 1. Make sure the Playdate Simulator is closed.
+1. If you are using Zig 0.10.1, delete `build.zig` and rename `build.0.10.1.zig` to `build.zig`.
 1. Run `zig build run`.
     1. If there any errors, double check `PLAYDATE_SDK_PATH` is correctly set and either binutils or the ARM Toolchain (depending on your OS) is properly installed and set in your `PATH`.
 1. You should now see simulator come up and look the [screenshot here](#Screenshot).
@@ -33,12 +34,7 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 ## <a name="Screenshot"></a>Screenshot
 <img src="readme_res/screenshot.png" alt="isolated" width="400"/>
 
-## <a name="TODO"></a> TODO
-There are a few things that are not yet implemented in `src/playdate_api_definitions.zig`:
-- Sprite API.
-- Lua API.
-- JSON API.
-- Scoreboards API.
-- Some of the Playdate sound filter API.  However, much of the Playdate audio API has been filled in.
+## Not Everything Has Been Tested
+With `zig translate-c` and a bunch of customization by hand, I converted the C API of the Playdate SDK to Zig.  While I have battle tested a lot of the APIs in my upcoming Pictoblox game and in my [port of UPWARD](https://github.com/DanB91/Upward-for-Playdate), there is much of the API here that has not been tested -- especially, the Sprite, JSON, Synth, and Sound Effect APIs.  
 
-
+If something isn't working, please check against the headers in the Playdate SDK C API and make sure the APIs match. Please open a bug report if the APIs don't match.
