@@ -25,7 +25,7 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 
 ## Contents
 - `build.zig` -- Prepopulated with code that will generate the Playdate `.pdx` executable.
-- `src/playdate_api_definitions.zig` -- Contains all of the Playdate API code.  This is supposed to be 1-to-1 with [Playdate's C API](https://sdk.play.date/1.12.3/Inside%20Playdate%20with%20C.html).  Not everything has been filled in yet.  See the [TODO](#TODO) section to see what is not yet there.
+- `src/playdate_api_definitions.zig` -- Contains all of the Playdate API code.  This is 1-to-1 with [Playdate's C API](https://sdk.play.date/1.12.3/Inside%20Playdate%20with%20C.html).
 - `src/playdate_hardware_main.zig` -- This has Zig and ARM assembly code required to get the executable working on Playdate hardware.  You shouldn't need to touch this file unless you'd like use a better implementation of `__aeabi_memset`.
 - `main.zig` -- Entry point for your code!  Contains example code that prints "Hello from Zig!" and an draws an example image to the screen.
 - `assets/` -- This folder will contain your assets and has an example image that is drawn to the screen in the example code in `main.zig`.
