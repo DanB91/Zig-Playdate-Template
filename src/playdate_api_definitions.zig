@@ -56,6 +56,16 @@ pub const PDStringEncoding = enum(c_int) {
     @"16BitLEEncoding",
 };
 
+pub const PDDateTime = extern struct {
+    year: u16,
+    month: u8, // 1-12
+    day: u8, // 1-31
+    weekday: u8, // 1=monday-7=sunday
+    hour: u8, // 0-23
+    minute: u8,
+    second: u8,
+};
+
 pub const PlaydateSys = extern struct {
     realloc: *const fn (ptr: ?*anyopaque, size: usize) callconv(.C) ?*anyopaque,
     formatString: *const fn (ret: ?*[*c]u8, fmt: [*c]const u8, ...) callconv(.C) c_int,
@@ -100,6 +110,12 @@ pub const PlaydateSys = extern struct {
     // 1.4
     getBatteryPercentage: *const fn () callconv(.C) f32,
     getBatteryVoltage: *const fn () callconv(.C) f32,
+
+    // 1.13
+    getTimezoneOffset: *const fn () callconv(.C) i32,
+    shouldDisplay24HourTime: *const fn () callconv(.C) c_int,
+    convertEpochToDateTime: *const fn (epoch: u32, datetime: ?*PDDateTime) callconv(.C) void,
+    convertDateTimeToEpoch: *const fn (datetime: ?*PDDateTime) callconv(.C) u32,
 };
 
 ////////LCD and Graphics///////////////////////
@@ -557,6 +573,9 @@ pub const PlaydateSoundSynth = extern struct {
     getVolume: *const fn (synth: ?*PDSynth, left: ?*f32, right: ?*f32) callconv(.C) void,
 
     isPlaying: *const fn (synth: ?*PDSynth) callconv(.C) c_int,
+
+    // 1.13
+    getEnvelope: *const fn (synth: ?*PDSynth) callconv(.C) ?*PDSynthEnvelope, // synth keeps ownership--don't free this!
 };
 
 pub const SequenceTrack = opaque {};
@@ -653,6 +672,11 @@ pub const PlaydateSoundEnvelope = extern struct {
     setRetrigger: *const fn (env: ?*PDSynthEnvelope, flag: c_int) callconv(.C) void,
 
     getValue: *const fn (env: ?*PDSynthEnvelope) callconv(.C) f32,
+
+    // 1.13
+    setCurvature: *const fn (env: ?*PDSynthEnvelope, amount: f32) callconv(.C) void,
+    setVelocitySensitivity: *const fn (env: ?*PDSynthEnvelope, velsens: f32) callconv(.C) void,
+    setRateScaling: *const fn (env: ?*PDSynthEnvelope, scaling: f32, start: MIDINote, end: MIDINote) callconv(.C) void,
 };
 
 pub const PlaydateSoundSource = extern struct {
