@@ -1,9 +1,4 @@
-
-MEMORY
-{
-  EXTRAM (rwx): ORIGIN = 0x60000000, LENGTH = 8*1024K
-}
-
+ENTRY(eventHandler)
 /*
 	This GROUP line is from the PlaydateSDK.  This doesn't seem to be required for Zig.
 	But, leaving it here just in case...
@@ -11,18 +6,16 @@ MEMORY
 	GROUP(libgcc.a libc.a libm.a)
 */
 
+PHDRS
+{
+   global_segment PT_LOAD;
+}
 SECTIONS
 {
-	.capi :
-	{
-		KEEP(*(.capi_handler))
-		KEEP(*(.bss_start))
-		KEEP(*(.bss_end))
-	} > EXTRAM
-
 	.text :
 	{
 		*(.text)
+		*(.text.*)
 
 		KEEP(*(.init))
 		KEEP(*(.fini))
@@ -45,7 +38,7 @@ SECTIONS
 
 		KEEP(*(.eh_frame*))
 
-	} > EXTRAM
+	}: global_segment
 
 	.data :
 	{
@@ -79,7 +72,7 @@ SECTIONS
 		/* All data end */
 		__data_end__ = .;
 
-	} > EXTRAM
+	}: global_segment
 
 	.bss :
 	{
@@ -87,10 +80,11 @@ SECTIONS
 		__bss_start__ = .;
 		*(.bss*)
 		*(COMMON)
+		*(COM)
 		. = ALIGN(4);
 		__bss_end__ = .;
 
-	} > EXTRAM
+	}: global_segment
 
   /DISCARD/ :
   {

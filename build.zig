@@ -23,13 +23,13 @@ pub fn build(b: *std.build.Builder) !void {
     });
     const game_elf = b.addExecutable(.{
         .name = "pdex.elf",
-        .root_source_file = .{ .path = "src/playdate_hardware_main.zig" },
+        .root_source_file = .{ .path = "src/main.zig" },
         .target = playdate_target,
         .optimize = optimize,
     });
     game_elf.step.dependOn(&lib_step.step);
-    game_elf.link_function_sections = true;
-    game_elf.stack_size = 61800;
+    game_elf.force_pic = true;
+    game_elf.link_emit_relocs = true;
     game_elf.setLinkerScriptPath(.{ .path = "link_map.ld" });
     const game_elf_step = b.addInstallArtifact(game_elf);
     game_elf_step.dest_dir = .{ .custom = output_path };
@@ -38,62 +38,58 @@ pub fn build(b: *std.build.Builder) !void {
     }
 
     const playdate_sdk_path = try std.process.getEnvVarOwned(b.allocator, "PLAYDATE_SDK_PATH");
-    //const home_path = try std.process.getEnvVarOwned(b.allocator, if (builtin.target.os.tag == .windows) "USERPROFILE" else "HOME");
 
-    switch (builtin.target.os.tag) {
-        .windows => {
-            const copy_assets = b.addSystemCommand(&.{ "cp", "assets/playdate_image.png", "zig-out/Source" });
-            copy_assets.step.dependOn(&game_elf_step.step);
-            const emit_device_binary = b.addSystemCommand(&.{ "arm-none-eabi-objcopy", "-Obinary", "zig-out/pdex.elf", "zig-out/Source/pdex.bin" });
-            emit_device_binary.step.dependOn(&copy_assets.step);
-            const pdc_path = try std.fmt.allocPrint(b.allocator, "{s}/bin/pdc.exe", .{playdate_sdk_path});
-            const pdc = b.addSystemCommand(&.{ pdc_path, "--skip-unknown", "zig-out/Source", "zig-out/" ++ pdx_file_name });
-            pdc.step.dependOn(&emit_device_binary.step);
-            b.getInstallStep().dependOn(&pdc.step);
-
-            const pd_simulator_path = try std.fmt.allocPrint(b.allocator, "{s}/bin/PlaydateSimulator.exe", .{playdate_sdk_path});
-            const run_cmd = b.addSystemCommand(&.{ pd_simulator_path, "zig-out/" ++ pdx_file_name });
-            run_cmd.step.dependOn(&pdc.step);
-            const run_step = b.step("run", "Run the app");
-            run_step.dependOn(&run_cmd.step);
-        },
-        .macos => {
-            const rename_dylib = b.addSystemCommand(&.{ "mv", "zig-out/Source/libpdex.dylib", "zig-out/Source/pdex.dylib" });
-            rename_dylib.step.dependOn(&game_elf_step.step);
-            const copy_assets = b.addSystemCommand(&.{ "cp", "assets/playdate_image.png", "zig-out/Source" });
-            copy_assets.step.dependOn(&rename_dylib.step);
-            const emit_device_binary = b.addSystemCommand(&.{ "objcopy", "-Obinary", "zig-out/Source/pdex.elf", "zig-out/Source/pdex.bin" });
-            emit_device_binary.step.dependOn(&copy_assets.step);
-            const pdc_path = try std.fmt.allocPrint(b.allocator, "{s}/bin/pdc", .{playdate_sdk_path});
-            const pdc = b.addSystemCommand(&.{ pdc_path, "--skip-unknown", "zig-out/Source", "zig-out/" ++ pdx_file_name });
-            pdc.step.dependOn(&emit_device_binary.step);
-            b.getInstallStep().dependOn(&pdc.step);
-
-            const run_cmd = b.addSystemCommand(&.{ "open", "zig-out/" ++ pdx_file_name });
-            run_cmd.step.dependOn(&pdc.step);
-            const run_step = b.step("run", "Run the app");
-            run_step.dependOn(&run_cmd.step);
-        },
-        .linux => {
-            const rename_so = b.addSystemCommand(&.{ "mv", "zig-out/Source/libpdex.so", "zig-out/Source/pdex.so" });
-            rename_so.step.dependOn(&game_elf_step.step);
-            const copy_assets = b.addSystemCommand(&.{ "cp", "assets/playdate_image.png", "zig-out/Source" });
-            copy_assets.step.dependOn(&rename_so.step);
-            const emit_device_binary = b.addSystemCommand(&.{ "arm-none-eabi-objcopy", "-Obinary", "zig-out/pdex.elf", "zig-out/Source/pdex.bin" });
-            emit_device_binary.step.dependOn(&copy_assets.step);
-            const pdc_path = try std.fmt.allocPrint(b.allocator, "{s}/bin/pdc", .{playdate_sdk_path});
-            const pdc = b.addSystemCommand(&.{ pdc_path, "--skip-unknown", "zig-out/Source", "zig-out/" ++ pdx_file_name });
-            pdc.step.dependOn(&emit_device_binary.step);
-            b.getInstallStep().dependOn(&pdc.step);
-
-            const pd_simulator_path = try std.fmt.allocPrint(b.allocator, "{s}/bin/PlaydateSimulator", .{playdate_sdk_path});
-            const run_cmd = b.addSystemCommand(&.{ pd_simulator_path, "zig-out/" ++ pdx_file_name });
-            run_cmd.step.dependOn(&pdc.step);
-            const run_step = b.step("run", "Run the app");
-            run_step.dependOn(&run_cmd.step);
-        },
-        else => {
-            @panic("Unsupported OS!");
-        },
+    var previous_step = &game_elf_step.step;
+    if (remove_lib_prefix_step(b)) |step| {
+        step.step.dependOn(&game_elf_step.step);
+        previous_step = &step.step;
     }
+    const copy_assets = b.addSystemCommand(&.{ "cp", "assets/playdate_image.png", "assets/pdxinfo", "assets/icon.png", "zig-out/Source" });
+    copy_assets.step.dependOn(previous_step);
+    const pdc_path = try std.fmt.allocPrint(b.allocator, "{s}/bin/pdc{s}", .{
+        playdate_sdk_path,
+        if (builtin.target.os.tag == .windows) ".exe" else "",
+    });
+    const pdc = b.addSystemCommand(&.{ pdc_path, "--skip-unknown", "zig-out/Source", "zig-out/" ++ pdx_file_name });
+    pdc.step.dependOn(&copy_assets.step);
+    b.getInstallStep().dependOn(&pdc.step);
+
+    const run_cmd = b: {
+        switch (builtin.target.os.tag) {
+            .windows => {
+                const pd_simulator_path = try std.fmt.allocPrint(b.allocator, "{s}/bin/PlaydateSimulator.exe", .{playdate_sdk_path});
+                break :b b.addSystemCommand(&.{ pd_simulator_path, "zig-out/" ++ pdx_file_name });
+            },
+            .macos => {
+                break :b b.addSystemCommand(&.{ "open", "zig-out/" ++ pdx_file_name });
+            },
+            .linux => {
+                const pd_simulator_path = try std.fmt.allocPrint(b.allocator, "{s}/bin/PlaydateSimulator", .{playdate_sdk_path});
+                break :b b.addSystemCommand(&.{ pd_simulator_path, "zig-out/" ++ pdx_file_name });
+            },
+            else => {
+                @panic("Unsupported OS!");
+            },
+        }
+    };
+    run_cmd.step.dependOn(&pdc.step);
+    const run_step = b.step("run", "Run the app");
+    run_step.dependOn(&run_cmd.step);
+
+    //clean step
+    {
+        const clean_step = b.step("clean", "Clean all artifacts");
+        const rm_zig_cache = b.addRemoveDirTree("zig-cache");
+        clean_step.dependOn(&rm_zig_cache.step);
+        const rm_zig_out = b.addRemoveDirTree("zig-out");
+        clean_step.dependOn(&rm_zig_out.step);
+    }
+}
+
+fn remove_lib_prefix_step(b: *std.build.Builder) ?*std.build.Step.Run {
+    const extension = if (builtin.target.os.tag == .macos) "dylib" else "so";
+    return switch (builtin.target.os.tag) {
+        .macos, .linux => b.addSystemCommand(&.{ "mv", "zig-out/Source/libpdex." ++ extension, "zig-out/Source/pdex." ++ extension }),
+        else => null,
+    };
 }
