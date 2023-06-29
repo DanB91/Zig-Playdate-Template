@@ -29,8 +29,8 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 1. Make sure the Playdate Simulator is closed.
 1. Run `zig build run`.
     1. If there any errors, double check `PLAYDATE_SDK_PATH` is correctly set.
-1. You should now see simulator come up and look the [screenshot here](#Screenshot).
-1. When you quit out to the home menu, change the home menu to view as list and you should see the "Hello World Zig" program with a custom icon [like here](#ListView).
+1. You should now see simulator come up and look the [screenshot here](#screenshot).
+1. When you quit out to the home menu, change the home menu to view as list and you should see the "Hello World Zig" program with a custom icon [like here](#home-screen-list-view).
 1. Optionally, connect your Playdate to the comupter and upload to the device by going to `Device` -> `Upload Game to Device..` in the Playdate Simulator.
     1. It should load and run on the hardware as well!
 
