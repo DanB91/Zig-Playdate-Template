@@ -1,0 +1,5 @@
+name=Hello World Zig
+author=Daniel Bokser
+description=A small demo of the Zig API
+bundleID=com.panic.hellozigapi
+imagePath=.
