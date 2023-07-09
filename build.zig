@@ -1,8 +1,6 @@
 const std = @import("std");
-const builtin = @import("builtin");
 
-const lib_extension = if (builtin.target.os.tag == .macos) ".dylib" else ".so";
-const exe_extension = if (builtin.target.os.tag == .windows) ".exe" else "";
+const os_tag = @import("builtin").os.tag;
 const name = "example";
 pub fn build(b: *std.build.Builder) !void {
     const pdx_file_name = name ++ ".pdx";
@@ -18,7 +16,7 @@ pub fn build(b: *std.build.Builder) !void {
         .optimize = optimize,
         .target = .{},
     });
-    _ = writer.addCopyFile(lib.getOutputSource(), "pdex" ++ lib_extension);
+    _ = writer.addCopyFile(lib.getOutputSource(), "pdex" ++ if (os_tag == .macos) ".dylib" else ".so");
 
     const playdate_target = try std.zig.CrossTarget.parse(.{
         .arch_os_abi = "thumb-freestanding-eabihf",
@@ -49,12 +47,17 @@ pub fn build(b: *std.build.Builder) !void {
     }
 
     const playdate_sdk_path = try std.process.getEnvVarOwned(b.allocator, "PLAYDATE_SDK_PATH");
-    const pdc_path = b.pathJoin(&.{ playdate_sdk_path, "bin", "pdc" ++ exe_extension });
-    const pd_simulator_path = b.pathJoin(&.{ playdate_sdk_path, "bin", "PlaydateSimulator" ++ exe_extension });
+    const pdc_path = b.pathJoin(&.{ playdate_sdk_path, "bin", if (os_tag == .windows) "pdc.exe" else "pdc" });
+    const pd_simulator_path = switch (os_tag) {
+        .linux => b.pathJoin(&.{ playdate_sdk_path, "bin", "PlaydateSimulator" }),
+        .macos => "open", // `open` focuses the window, while running the simulator directry doesn't.
+        .windows => b.pathJoin(&.{ playdate_sdk_path, "bin", "PlaydateSimulator.exe" }),
+        else => @panic("Unsupported OS"),
+    };
 
     const pdc = b.addSystemCommand(&.{ pdc_path, "--skip-unknown" });
     pdc.addDirectorySourceArg(source_dir);
-    pdc.setName("pdc" ++ exe_extension);
+    pdc.setName("pdc");
     const pdx = pdc.addOutputFileArg(pdx_file_name);
 
     b.installDirectory(.{
@@ -64,17 +67,12 @@ pub fn build(b: *std.build.Builder) !void {
     });
 
     const run_cmd = b.addSystemCommand(&.{pd_simulator_path});
-    run_cmd.setName("PlaydateSimulator");
     run_cmd.addDirectorySourceArg(pdx);
+    run_cmd.setName("PlaydateSimulator");
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
-    //clean step
-    {
-        const clean_step = b.step("clean", "Clean all artifacts");
-        const rm_zig_cache = b.addRemoveDirTree(b.cache_root.path orelse ".");
-        clean_step.dependOn(&rm_zig_cache.step);
-        const rm_zig_out = b.addRemoveDirTree(b.getInstallPath(.prefix, ""));
-        clean_step.dependOn(&rm_zig_out.step);
-    }
+    const clean_step = b.step("clean", "Clean all artifacts");
+    clean_step.dependOn(b.getUninstallStep());
+    clean_step.dependOn(&b.addRemoveDirTree(b.cache_root.path orelse ".").step);
 }
