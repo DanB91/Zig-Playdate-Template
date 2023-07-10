@@ -71,6 +71,7 @@ pub fn build(b: *std.build.Builder) !void {
     run_cmd.setName("PlaydateSimulator");
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
+    run_step.dependOn(b.getInstallStep());
 
     const clean_step = b.step("clean", "Clean all artifacts");
     clean_step.dependOn(b.getUninstallStep());
