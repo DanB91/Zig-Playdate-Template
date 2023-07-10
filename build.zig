@@ -16,7 +16,12 @@ pub fn build(b: *std.build.Builder) !void {
         .optimize = optimize,
         .target = .{},
     });
-    _ = writer.addCopyFile(lib.getOutputSource(), "pdex" ++ if (os_tag == .macos) ".dylib" else ".so");
+    _ = writer.addCopyFile(lib.getOutputSource(), "pdex" ++ switch (os_tag) {
+        .windows => ".dll",
+        .macos => ".dylib",
+        .linux => ".so",
+        else => @panic("Unsupported OS"),
+    });
 
     const playdate_target = try std.zig.CrossTarget.parse(.{
         .arch_os_abi = "thumb-freestanding-eabihf",
