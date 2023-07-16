@@ -73,7 +73,7 @@ pub const PlaydateSys = extern struct {
     @"error": *const fn (fmt: [*c]const u8, ...) callconv(.C) void,
     getLanguage: *const fn () callconv(.C) PDLanguage,
     getCurrentTimeMilliseconds: *const fn () callconv(.C) c_uint,
-    getSecondsSinceEpoch: *const fn (milliseconds: ?*c_uint) callconv(.C) c_uint,
+    getSecondsSinceEpoch: *const fn () callconv(.C) c_uint,
     drawFPS: *const fn (x: c_int, y: c_int) callconv(.C) void,
 
     setUpdateCallback: *const fn (update: ?PDCallbackFunction, userdata: ?*anyopaque) callconv(.C) void,
