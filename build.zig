@@ -1,5 +1,63 @@
 const std = @import("std");
 
+/// first looks to see if ${PLAYDATE_SDK_PATH} is set, if not looks for
+/// ~/.Playdate/config
+/// to find the path to the sdk
+pub fn path_to_playdate_sdk(
+    b: *std.build.Builder,
+) ![]const u8
+{
+    // check env var first
+    return std.process.getEnvVarOwned(
+        b.allocator,
+        "PLAYDATE_SDK_PATH"
+    ) catch path: {
+        const home_dir:[]const u8 = try std.process.getEnvVarOwned(
+            b.allocator,
+            "HOME"
+        );
+
+        const config_path = b.pathJoin(
+            &.{home_dir, ".Playdate", "config"}
+        );
+
+        errdefer std.debug.print(
+            "Error: trying to open '{s}'\n",
+            .{ config_path }
+        );
+
+        // next look in ~/.Playdate/config
+        const config_contents = (
+            try std.fs.openFileAbsolute(
+                config_path,
+                .{}
+            )
+        ).reader().readAllAlloc(
+            b.allocator,
+            // chosen randomly, might be too small?
+            1024,
+        ) catch {
+                    // set the environmenv variable?
+                    break :path error.NoPlaydateSDKFound;
+        };
+
+        errdefer std.debug.print(
+            "Config contents: {s}\n",
+            .{ config_contents }
+        );
+
+        var iter = std.mem.split(u8, config_contents, "\t");
+        // should be "SDKRoot"
+        _ = iter.next();
+
+        const result = try (iter.next() orelse error.ConfigFileContentsUnreadable);
+
+        iter = std.mem.split(u8, result, "\n");
+
+        break :path iter.next() orelse error.ConfigFileContentsUnreadable;
+    };
+}
+
 const os_tag = @import("builtin").os.tag;
 const name = "example";
 pub fn build(b: *std.build.Builder) !void {
@@ -51,7 +109,7 @@ pub fn build(b: *std.build.Builder) !void {
         _ = writer.addCopyFile(file_source, entry.name);
     }
 
-    const playdate_sdk_path = try std.process.getEnvVarOwned(b.allocator, "PLAYDATE_SDK_PATH");
+    const playdate_sdk_path = try path_to_playdate_sdk(b);
     const pdc_path = b.pathJoin(&.{ playdate_sdk_path, "bin", if (os_tag == .windows) "pdc.exe" else "pdc" });
     const pd_simulator_path = switch (os_tag) {
         .linux => b.pathJoin(&.{ playdate_sdk_path, "bin", "PlaydateSimulator" }),
