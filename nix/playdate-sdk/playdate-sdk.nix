@@ -4,8 +4,6 @@
   fetchurl,
   pkgsIntel,
 }: let
-  # TODO: eventually, I want to do a check here if we're natively
-  # on x86_64 to not cross-compile these and just use the built-ins.
 
   # Build inputs for `pdc`
   pdcInputs = with pkgsIntel; [
