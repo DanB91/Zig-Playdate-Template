@@ -41,15 +41,7 @@ pub fn build(b: *std.build.Builder) !void {
     }
     _ = writer.addCopyFile(elf.getOutputSource(), "pdex.elf");
 
-    // WriteFile doesn't support copying whole directories.
-    var assets = try b.build_root.handle.openIterableDir("assets", .{});
-    defer assets.close();
-    var iter = assets.iterate();
-    while (try iter.next()) |entry| {
-        if (entry.kind != .file) continue;
-        const file_source = .{ .path = b.pathJoin(&.{ "assets", entry.name }) };
-        _ = writer.addCopyFile(file_source, entry.name);
-    }
+    try addCopyDirectory(writer, "assets", ".");
 
     const playdate_sdk_path = try std.process.getEnvVarOwned(b.allocator, "PLAYDATE_SDK_PATH");
     const pdc_path = b.pathJoin(&.{ playdate_sdk_path, "bin", if (os_tag == .windows) "pdc.exe" else "pdc" });
@@ -60,7 +52,7 @@ pub fn build(b: *std.build.Builder) !void {
         else => @panic("Unsupported OS"),
     };
 
-    const pdc = b.addSystemCommand(&.{ pdc_path, "--skip-unknown" });
+    const pdc = b.addSystemCommand(&.{pdc_path});
     pdc.addDirectorySourceArg(source_dir);
     pdc.setName("pdc");
     const pdx = pdc.addOutputFileArg(pdx_file_name);
@@ -80,5 +72,36 @@ pub fn build(b: *std.build.Builder) !void {
 
     const clean_step = b.step("clean", "Clean all artifacts");
     clean_step.dependOn(b.getUninstallStep());
-    clean_step.dependOn(&b.addRemoveDirTree(b.cache_root.path orelse ".").step);
+    clean_step.dependOn(&b.addRemoveDirTree("zig-cache").step);
+    clean_step.dependOn(&b.addRemoveDirTree("zig-out").step);
+}
+
+pub fn addCopyDirectory(
+    wf: *std.build.Step.WriteFile,
+    src_path: []const u8,
+    dest_path: []const u8,
+) !void {
+    const b = wf.step.owner;
+    var dir = try b.build_root.handle.openIterableDir(src_path, .{});
+    defer dir.close();
+    var it = dir.iterate();
+    while (try it.next()) |entry| {
+        const new_src_path = b.pathJoin(&.{ src_path, entry.name });
+        const new_dest_path = b.pathJoin(&.{ dest_path, entry.name });
+        const new_src = .{ .path = new_src_path };
+        switch (entry.kind) {
+            .file => {
+                _ = wf.addCopyFile(new_src, new_dest_path);
+            },
+            .directory => {
+                try addCopyDirectory(
+                    wf,
+                    new_src_path,
+                    new_dest_path,
+                );
+            },
+            //TODO: possible support for sym links?
+            else => {},
+        }
+    }
 }

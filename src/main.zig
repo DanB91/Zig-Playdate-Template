@@ -9,7 +9,7 @@ pub export fn eventHandler(playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEv
     _ = arg;
     switch (event) {
         .EventInit => {
-            g_playdate_image = playdate.graphics.loadBitmap("playdate_image", null).?;
+            g_playdate_image = playdate.graphics.loadBitmap("images/playdate_image", null).?;
             const font = playdate.graphics.loadFont("/System/Fonts/Asheville-Sans-14-Bold.pft", null).?;
             playdate.graphics.setFont(font);
 
