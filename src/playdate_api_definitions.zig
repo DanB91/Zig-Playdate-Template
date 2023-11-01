@@ -275,6 +275,9 @@ pub const PlaydateGraphics = extern struct {
 
     // 1.12
     makeFontFromData: *const fn (data: *LCDFontData, wide: c_int) callconv(.C) *LCDFont,
+
+    // 2.1
+    getTextTracking: *const fn () callconv(.C) c_int,
 };
 pub const PlaydateDisplay = struct {
     getWidth: *const fn () callconv(.C) c_int,
@@ -369,6 +372,9 @@ pub const PlaydateSound = extern struct {
 
     // 1.12
     signal: *const PlaydateSoundSignal,
+
+    // 2.2
+    getError: *const fn () callconv(.C) [*c]const u8,
 };
 
 //data is mono
@@ -579,6 +585,9 @@ pub const PlaydateSoundSynth = extern struct {
 
     // 1.13
     getEnvelope: *const fn (synth: ?*PDSynth) callconv(.C) ?*PDSynthEnvelope, // synth keeps ownership--don't free this!
+
+    // 2.2
+    setWavetable: *const fn (synth: ?*PDSynth, sample: ?*AudioSample, log2size: c_int, columns: c_int, rows: c_int) callconv(.C) c_int,
 };
 
 pub const SequenceTrack = opaque {};
@@ -992,6 +1001,10 @@ pub const PlaydateSprite = extern struct {
 
     // added in 1.10
     setStencilImage: *const fn (sprite: ?*LCDSprite, stencil: ?*LCDBitmap, tile: c_int) callconv(.C) void,
+
+    // 2.1
+    setCenter: *const fn (s: ?*LCDSprite, x: f32, y: f32) callconv(.C) void,
+    getCenter: *const fn (s: ?*LCDSprite, x: ?*f32, y: ?*f32) callconv(.C) void,
 };
 
 ////////Lua///////
