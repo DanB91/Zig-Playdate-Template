@@ -1,6 +1,6 @@
 /*
 	NOTE(Daniel Bokser): It seems that due to the way the Zig now invokes the linker, 
-	the entry point name must be specified in build.zig. Thus, the ENTRY() call here is unnecessary. 
+	the entry point name must be specified in build.zig. Thus, the ENTRY() call here is no longer needed. 
 
 	ENTRY(eventHandler)
 */
