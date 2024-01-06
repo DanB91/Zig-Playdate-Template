@@ -1,17 +1,33 @@
-ENTRY(eventHandler)
 /*
-	This GROUP line is from the PlaydateSDK.  This doesn't seem to be required for Zig.
+	NOTE(Daniel Bokser): It seems that due to the way the Zig now invokes the linker, 
+	the entry point name must be specified in build.zig. Thus, the ENTRY() call here is unnecessary. 
+
+	ENTRY(eventHandler)
+*/
+
+/*
+	NOTE(Daniel Bokser): This GROUP line is from the PlaydateSDK.  This doesn't seem to be required for Zig.
 	But, leaving it here just in case...
 
 	GROUP(libgcc.a libc.a libm.a)
 */
 
+/*
+	NOTE(Daniel Bokser): Had to add this PHDRS contstruct in to force however Zig invokes the linker 
+	to make sure there is only one combined ELF segment, which is what PDC seems to expect.
+*/
 PHDRS
 {
    global_segment PT_LOAD;
 }
 SECTIONS
 {
+	/*
+		NOTE(Daniel Bokser): Had to add this in to force however Zig now invokes the linker 
+		to make sure everything starts at address 0, which is what PDC seems to expect.
+	*/
+	. = 0;
+
 	.text :
 	{
 		*(.text)

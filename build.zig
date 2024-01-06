@@ -2,44 +2,46 @@ const std = @import("std");
 
 const os_tag = @import("builtin").os.tag;
 const name = "example";
-pub fn build(b: *std.build.Builder) !void {
+pub fn build(b: *std.Build) !void {
     const pdx_file_name = name ++ ".pdx";
     const optimize = b.standardOptimizeOption(.{});
 
     const writer = b.addWriteFiles();
-    const source_dir = writer.getDirectorySource();
+    const source_dir = writer.getDirectory();
     writer.step.name = "write source directory";
 
     const lib = b.addSharedLibrary(.{
         .name = "pdex",
         .root_source_file = .{ .path = "src/main.zig" },
         .optimize = optimize,
-        .target = .{},
+        .target = b.host,
     });
-    _ = writer.addCopyFile(lib.getOutputSource(), "pdex" ++ switch (os_tag) {
+    _ = writer.addCopyFile(lib.getEmittedBin(), "pdex" ++ switch (os_tag) {
         .windows => ".dll",
         .macos => ".dylib",
         .linux => ".so",
         else => @panic("Unsupported OS"),
     });
 
-    const playdate_target = try std.zig.CrossTarget.parse(.{
+    const playdate_target = b.resolveTargetQuery(try std.zig.CrossTarget.parse(.{
         .arch_os_abi = "thumb-freestanding-eabihf",
         .cpu_features = "cortex_m7-fp64-fp_armv8d16-fpregs64-vfp2-vfp3d16-vfp4d16",
-    });
+    }));
     const elf = b.addExecutable(.{
         .name = "pdex.elf",
         .root_source_file = .{ .path = "src/main.zig" },
         .target = playdate_target,
         .optimize = optimize,
+        .pic = true,
     });
-    elf.force_pic = true;
     elf.link_emit_relocs = true;
+    elf.entry = .{ .symbol_name = "eventHandler" };
+
     elf.setLinkerScriptPath(.{ .path = "link_map.ld" });
     if (optimize == .ReleaseFast) {
-        elf.omit_frame_pointer = true;
+        elf.root_module.omit_frame_pointer = true;
     }
-    _ = writer.addCopyFile(elf.getOutputSource(), "pdex.elf");
+    _ = writer.addCopyFile(elf.getEmittedBin(), "pdex.elf");
 
     try addCopyDirectory(writer, "assets", ".");
 
@@ -77,12 +79,12 @@ pub fn build(b: *std.build.Builder) !void {
 }
 
 pub fn addCopyDirectory(
-    wf: *std.build.Step.WriteFile,
+    wf: *std.Build.Step.WriteFile,
     src_path: []const u8,
     dest_path: []const u8,
 ) !void {
     const b = wf.step.owner;
-    var dir = try b.build_root.handle.openIterableDir(src_path, .{});
+    var dir = try b.build_root.handle.openDir(src_path, .{});
     defer dir.close();
     var it = dir.iterate();
     while (try it.next()) |entry| {
