@@ -84,7 +84,10 @@ pub fn addCopyDirectory(
     dest_path: []const u8,
 ) !void {
     const b = wf.step.owner;
-    var dir = try b.build_root.handle.openDir(src_path, .{});
+    var dir = try b.build_root.handle.openDir(
+        src_path,
+        .{ .iterate = true },
+    );
     defer dir.close();
     var it = dir.iterate();
     while (try it.next()) |entry| {
