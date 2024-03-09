@@ -67,7 +67,7 @@ pub fn build(b: *std.Build) !void {
     b.installDirectory(.{
         .source_dir = source_dir,
         .install_dir = .prefix,
-        .install_subdir = "source_dir",
+        .install_subdir = "pdx_source_dir",
     });
 
     const run_cmd = b.addSystemCommand(&.{pd_simulator_path});
