@@ -26,6 +26,12 @@ pub const BUTTON_A = (1 << 5);
 pub const PDMenuItem = opaque {};
 pub const PDCallbackFunction = *const fn (userdata: ?*anyopaque) callconv(.C) c_int;
 pub const PDMenuItemCallbackFunction = *const fn (userdata: ?*anyopaque) callconv(.C) void;
+pub const PDButtonCallbackFunction = *const fn (
+    button: PDButtons,
+    down: c_int,
+    when: u32,
+    userdata: ?*anyopaque,
+) callconv(.C) c_int;
 pub const PDSystemEvent = enum(c_int) {
     EventInit,
     EventInitLua,
@@ -119,6 +125,32 @@ pub const PlaydateSys = extern struct {
 
     //2.0
     clearICache: *const fn () callconv(.C) void,
+
+    // 2.4
+    setButtonCallback: *const fn (
+        cb: ?PDButtonCallbackFunction,
+        buttonud: ?*anyopaque,
+        queuesize: c_int,
+    ) callconv(.C) void,
+    setSerialMessageCallback: *const fn (
+        callback: *const fn (data: [*c]const u8) callconv(.C) void,
+    ) callconv(.C) void,
+    vaFormatString: *const fn (
+        outstr: [*c][*c]u8,
+        fmt: [*c]const u8,
+        args: VaList,
+    ) callconv(.C) c_int,
+    parseString: *const fn (
+        str: [*c]const u8,
+        format: [*c]const u8,
+        ...,
+    ) callconv(.C) c_int,
+
+    //NOTE: std.builtin.VaList is not available when targeting Playdate hardware,
+    //      so we need to directly include it
+    const VaList = @cImport({
+        @cInclude("stdarg.h");
+    }).va_list;
 };
 
 ////////LCD and Graphics///////////////////////
@@ -340,6 +372,11 @@ const PlaydateFile = extern struct {
 };
 
 /////////Audio//////////////
+const MicSource = enum(c_int) {
+    kMicInputAutodetect = 0,
+    kMicInputInternal = 1,
+    kMicInputHeadset = 2,
+};
 pub const PlaydateSound = extern struct {
     channel: *const PlaydateSoundChannel,
     fileplayer: *const PlaydateSoundFileplayer,
@@ -363,8 +400,12 @@ pub const PlaydateSound = extern struct {
     addChannel: *const fn (channel: ?*SoundChannel) callconv(.C) void,
     removeChannel: *const fn (channel: ?*SoundChannel) callconv(.C) void,
 
-    setMicCallback: *const fn (callback: RecordCallback, context: ?*anyopaque, forceInternal: c_int) callconv(.C) void,
-    getHeadphoneState: *const fn (headphone: ?*c_int, headsetmic: ?*c_int, changeCallback: *const fn (headphone: c_int, mic: c_int) callconv(.C) void) callconv(.C) void,
+    setMicCallback: *const fn (callback: RecordCallback, context: ?*anyopaque, source: MicSource) callconv(.C) void,
+    getHeadphoneState: *const fn (
+        headphone: ?*c_int,
+        headsetmic: ?*c_int,
+        changeCallback: ?*const fn (headphone: c_int, mic: c_int) callconv(.C) void,
+    ) callconv(.C) void,
     setOutputsActive: *const fn (headphone: c_int, mic: c_int) callconv(.C) void,
 
     // 1.5
@@ -381,7 +422,7 @@ pub const PlaydateSound = extern struct {
 pub const RecordCallback = *const fn (context: ?*anyopaque, buffer: [*c]i16, length: c_int) callconv(.C) c_int;
 // len is # of samples in each buffer, function should return 1 if it produced output
 pub const AudioSourceFunction = *const fn (context: ?*anyopaque, left: [*c]i16, right: [*c]i16, len: c_int) callconv(.C) c_int;
-pub const SndCallbackProc = *const fn (c: ?*SoundSource) callconv(.C) void;
+pub const SndCallbackProc = *const fn (c: ?*SoundSource, userdata: ?*anyopaque) callconv(.C) void;
 
 pub const SoundChannel = opaque {};
 pub const SoundSource = opaque {};
@@ -424,12 +465,27 @@ pub const PlaydateSoundFileplayer = extern struct {
     setRate: *const fn (player: ?*FilePlayer, rate: f32) callconv(.C) void,
     setLoopRange: *const fn (player: ?*FilePlayer, start: f32, end: f32) callconv(.C) void,
     didUnderrun: *const fn (player: ?*FilePlayer) callconv(.C) c_int,
-    setFinishCallback: *const fn (player: ?*FilePlayer, callback: SndCallbackProc) callconv(.C) void,
-    setLoopCallback: *const fn (player: ?*FilePlayer, callback: SndCallbackProc) callconv(.C) void,
+    setFinishCallback: *const fn (
+        player: ?*FilePlayer,
+        callback: ?SndCallbackProc,
+        userdata: ?*anyopaque,
+    ) callconv(.C) void,
+    setLoopCallback: *const fn (
+        player: ?*FilePlayer,
+        callback: ?SndCallbackProc,
+        userdata: ?*anyopaque,
+    ) callconv(.C) void,
     getOffset: *const fn (player: ?*FilePlayer) callconv(.C) f32,
     getRate: *const fn (player: ?*FilePlayer) callconv(.C) f32,
     setStopOnUnderrun: *const fn (player: ?*FilePlayer, flag: c_int) callconv(.C) void,
-    fadeVolume: *const fn (player: ?*FilePlayer, left: f32, right: f32, len: i32, finishCallback: SndCallbackProc) callconv(.C) void,
+    fadeVolume: *const fn (
+        player: ?*FilePlayer,
+        left: f32,
+        right: f32,
+        len: i32,
+        finishCallback: ?SndCallbackProc,
+        userdata: ?*anyopaque,
+    ) callconv(.C) void,
     setMP3StreamSource: *const fn (
         player: ?*FilePlayer,
         dataSource: *const fn (data: [*c]u8, bytes: c_int, userdata: ?*anyopaque) callconv(.C) c_int,
@@ -475,6 +531,9 @@ pub const PlaydateSoundSample = extern struct {
     getData: *const fn (sample: ?*AudioSample, data: ?*[*c]u8, format: [*c]SoundFormat, sampleRate: ?*u32, byteLength: ?*u32) callconv(.C) void,
     freeSample: *const fn (sample: ?*AudioSample) callconv(.C) void,
     getLength: *const fn (sample: ?*AudioSample) callconv(.C) f32,
+
+    // 2.4
+    decompress: *const fn (sample: ?*AudioSample) callconv(.C) c_int,
 };
 
 pub const PlaydateSoundSampleplayer = extern struct {
@@ -490,8 +549,16 @@ pub const PlaydateSoundSampleplayer = extern struct {
     setOffset: *const fn (player: ?*SamplePlayer, offset: f32) callconv(.C) void,
     setRate: *const fn (player: ?*SamplePlayer, rate: f32) callconv(.C) void,
     setPlayRange: *const fn (player: ?*SamplePlayer, start: c_int, end: c_int) callconv(.C) void,
-    setFinishCallback: *const fn (player: ?*SamplePlayer, callback: ?SndCallbackProc) callconv(.C) void,
-    setLoopCallback: *const fn (player: ?*SamplePlayer, callback: ?SndCallbackProc) callconv(.C) void,
+    setFinishCallback: *const fn (
+        player: ?*SamplePlayer,
+        callback: ?SndCallbackProc,
+        userdata: ?*anyopaque,
+    ) callconv(.C) void,
+    setLoopCallback: *const fn (
+        player: ?*SamplePlayer,
+        callback: ?SndCallbackProc,
+        userdata: ?*anyopaque,
+    ) callconv(.C) void,
     getOffset: *const fn (player: ?*SamplePlayer) callconv(.C) f32,
     getRate: *const fn (player: ?*SamplePlayer) callconv(.C) f32,
     setPaused: *const fn (player: ?*SamplePlayer, flag: c_int) callconv(.C) void,
@@ -530,16 +597,17 @@ pub const SynthRenderFunc = *const fn (userdata: ?*anyopaque, left: [*c]i32, rig
 // len == -1 if indefinite
 pub const SynthNoteOnFunc = *const fn (userdata: ?*anyopaque, note: MIDINote, velocity: f32, len: f32) callconv(.C) void;
 
-pub const SynthReleaseFunc = *const fn (?*anyopaque, c_int) callconv(.C) void;
-pub const SynthSetParameterFunc = *const fn (?*anyopaque, c_int, f32) callconv(.C) c_int;
-pub const SynthDeallocFunc = *const fn (?*anyopaque) callconv(.C) void;
+pub const SynthReleaseFunc = *const fn (userdata: ?*anyopaque, stop: c_int) callconv(.C) void;
+pub const SynthSetParameterFunc = *const fn (userdata: ?*anyopaque, parameter: c_int, value: f32) callconv(.C) c_int;
+pub const SynthDeallocFunc = *const fn (userdata: ?*anyopaque) callconv(.C) void;
+pub const SynthCopyUserdata = *const fn (userdata: ?*anyopaque) callconv(.C) ?*anyopaque;
 
 pub const PlaydateSoundSynth = extern struct {
     newSynth: *const fn () callconv(.C) ?*PDSynth,
     freeSynth: *const fn (synth: ?*PDSynth) callconv(.C) void,
 
     setWaveform: *const fn (synth: ?*PDSynth, wave: SoundWaveform) callconv(.C) void,
-    setGenerator: *const fn (
+    setGenerator_deprecated: *const fn (
         synth: ?*PDSynth,
         stereo: c_int,
         render: SynthRenderFunc,
@@ -588,6 +656,20 @@ pub const PlaydateSoundSynth = extern struct {
 
     // 2.2
     setWavetable: *const fn (synth: ?*PDSynth, sample: ?*AudioSample, log2size: c_int, columns: c_int, rows: c_int) callconv(.C) c_int,
+
+    // 2.4
+    setGenerator: *const fn (
+        synth: ?*PDSynth,
+        stereo: c_int,
+        render: SynthRenderFunc,
+        noteOn: SynthNoteOnFunc,
+        release: SynthReleaseFunc,
+        setparam: SynthSetParameterFunc,
+        dealloc: SynthDeallocFunc,
+        copyUserdata: SynthCopyUserdata,
+        userdata: ?*anyopaque,
+    ) callconv(.C) void,
+    copy: *const fn (synth: ?*PDSynth) callconv(.C) ?*PDSynth,
 };
 
 pub const SequenceTrack = opaque {};
@@ -660,7 +742,12 @@ pub const PlaydateSoundLFO = extern struct {
     setCenter: *const fn (lfo: ?*PDSynthLFO, center: f32) callconv(.C) void,
     setDepth: *const fn (lfo: ?*PDSynthLFO, depth: f32) callconv(.C) void,
     setArpeggiation: *const fn (lfo: ?*PDSynthLFO, nSteps: c_int, steps: [*c]f32) callconv(.C) void,
-    setFunction: *const fn (lfo: ?*PDSynthLFO, lfoFunc: *const fn (lfo: ?*PDSynthLFO, userdata: ?*anyopaque) callconv(.C) f32, userdata: ?*anyopaque, interpolate: c_int) callconv(.C) void,
+    setFunction: *const fn (
+        lfo: ?*PDSynthLFO,
+        lfoFunc: *const fn (lfo: ?*PDSynthLFO, userdata: ?*anyopaque) callconv(.C) f32,
+        userdata: ?*anyopaque,
+        interpolate: c_int,
+    ) callconv(.C) void,
     setDelay: *const fn (lfo: ?*PDSynthLFO, holdoff: f32, ramptime: f32) callconv(.C) void,
     setRetrigger: *const fn (lfo: ?*PDSynthLFO, flag: c_int) callconv(.C) void,
 
@@ -695,7 +782,11 @@ pub const PlaydateSoundSource = extern struct {
     setVolume: *const fn (c: ?*SoundSource, lvol: f32, rvol: f32) callconv(.C) void,
     getVolume: *const fn (c: ?*SoundSource, outl: ?*f32, outr: ?*f32) callconv(.C) void,
     isPlaying: *const fn (c: ?*SoundSource) callconv(.C) c_int,
-    setFinishCallback: *const fn (c: ?*SoundSource, SndCallbackProc) callconv(.C) void,
+    setFinishCallback: *const fn (
+        c: ?*SoundSource,
+        callback: SndCallbackProc,
+        userdata: ?*anyopaque,
+    ) callconv(.C) void,
 };
 
 pub const ControlSignal = opaque {};

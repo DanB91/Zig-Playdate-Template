@@ -25,7 +25,7 @@ pub fn build(b: *std.Build) !void {
 
     const playdate_target = b.resolveTargetQuery(try std.zig.CrossTarget.parse(.{
         .arch_os_abi = "thumb-freestanding-eabihf",
-        .cpu_features = "cortex_m7-fp64-fp_armv8d16-fpregs64-vfp2-vfp3d16-vfp4d16",
+        .cpu_features = "cortex_m7+vfp4d16sp",
     }));
     const elf = b.addExecutable(.{
         .name = "pdex.elf",
@@ -63,6 +63,11 @@ pub fn build(b: *std.Build) !void {
         .source_dir = pdx,
         .install_dir = .prefix,
         .install_subdir = pdx_file_name,
+    });
+    b.installDirectory(.{
+        .source_dir = source_dir,
+        .install_dir = .prefix,
+        .install_subdir = "source_dir",
     });
 
     const run_cmd = b.addSystemCommand(&.{pd_simulator_path});

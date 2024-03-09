@@ -1,0 +1,3 @@
+March 8, 2024
+- Fixed issue where latest Zig, version, 0.12.0-dev.3156+0b2e23b06, wasn't generating floating point instructions
+- Added Playdate SDK 2.4.1 API changes
