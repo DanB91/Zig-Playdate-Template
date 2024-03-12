@@ -16,7 +16,7 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 ##  <a name="Requirements"></a>Requirements
 - Either macOS, Windows, or Linux.
 - Zig compiler 0.12.0-dev.3156+0b2e23b06 or newer. Pulling down the latest build is your best bet.
-- [Playdate SDK](https://play.date/dev/) 2.1.0 or later installed.
+- [Playdate SDK](https://play.date/dev/) 2.4.1 or later installed.
 
 ## Contents
 - `build.zig` -- Prepopulated with code that will generate the Playdate `.pdx` executable.
