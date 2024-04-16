@@ -23,6 +23,10 @@ pub fn build(b: *std.Build) !void {
         else => @panic("Unsupported OS"),
     });
 
+    if (os_tag == .windows) {
+        _ = writer.addCopyFile(lib.getEmittedPdb(), "pdex.pdb");
+    }
+
     const playdate_target = b.resolveTargetQuery(try std.zig.CrossTarget.parse(.{
         .arch_os_abi = "thumb-freestanding-eabihf",
         .cpu_features = "cortex_m7+vfp4d16sp",
