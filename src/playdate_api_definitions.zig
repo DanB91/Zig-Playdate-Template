@@ -13,6 +13,11 @@ pub const PlaydateAPI = extern struct {
     scoreboards: *const PlaydateScoreboards,
 };
 
+/////////Zig Utility Functions///////////
+pub fn is_compiling_for_playdate_hardware() bool {
+    return builtin.os.tag == .freestanding and builtin.cpu.arch.isThumb();
+}
+
 ////////Buttons//////////////
 pub const PDButtons = c_int;
 pub const BUTTON_LEFT = (1 << 0);
@@ -146,11 +151,17 @@ pub const PlaydateSys = extern struct {
         ...,
     ) callconv(.C) c_int,
 
-    //NOTE: std.builtin.VaList is not available when targeting Playdate hardware,
+    //NOTE(Daniel Bokser): std.builtin.VaList is not available when targeting Playdate hardware,
     //      so we need to directly include it
-    const VaList = @cImport({
-        @cInclude("stdarg.h");
-    }).va_list;
+    const VaList = if (is_compiling_for_playdate_hardware())
+        @cImport({
+            @cInclude("stdarg.h");
+        }).va_list
+    else
+        //NOTE(Daniel Bokser):
+        //  We must use std.builtin.VaList when building for the Linux simulator.
+        //  Using stdarg.h results in a compiler error otherwise.
+        std.builtin.VaList;
 };
 
 ////////LCD and Graphics///////////////////////
