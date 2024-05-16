@@ -15,8 +15,8 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 
 ##  <a name="Requirements"></a>Requirements
 - Either macOS, Windows, or Linux.
-- Zig compiler 0.12.0-dev.3156+0b2e23b06 or newer. Pulling down the latest build is your best bet.
-- [Playdate SDK](https://play.date/dev/) 2.4.1 or later installed.
+- Zig compiler 0.12.0 or newer. Pulling down the latest build is your best bet.
+- [Playdate SDK](https://play.date/dev/) 2.4.2 or later installed.
 
 ## Contents
 - `build.zig` -- Prepopulated with code that will generate the Playdate `.pdx` executable.
@@ -33,6 +33,9 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 1. When you quit out to the home menu, change the home menu to view as list and you should see the "Hello World Zig" program with a custom icon [like here](#home-screen-list-view).
 1. Optionally, connect your Playdate to the comupter and upload to the device by going to `Device` -> `Upload Game to Device..` in the Playdate Simulator.
     1. It should load and run on the hardware as well!
+
+## Other Notes
+- You can generate a release build with either `zig build -Doptimize=ReleaseFast` or `zig build -Doptimize=ReleaseSafe` for a slightly slower build than ReleaseFast but with safety checks like array out-of-bounds checking. For a Playdate game, you probably want ship a ReleaseFast.
 
 
 ## <a name="Screenshot"></a>Screenshot

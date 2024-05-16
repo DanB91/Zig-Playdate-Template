@@ -1,0 +1,19 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Build and Launch Debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${env:PLAYDATE_SDK_PATH}/bin/PlaydateSimulator",
+            "args": [
+                "zig-out/example.pdx"
+            ],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
