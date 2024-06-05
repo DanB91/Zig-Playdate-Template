@@ -317,10 +317,15 @@ pub const PlaydateGraphics = extern struct {
     setStencilImage: *const fn (stencil: ?*LCDBitmap, tile: c_int) callconv(.C) void,
 
     // 1.12
-    makeFontFromData: *const fn (data: *LCDFontData, wide: c_int) callconv(.C) *LCDFont,
+    makeFontFromData: *const fn (data: ?*LCDFontData, wide: c_int) callconv(.C) *LCDFont,
 
     // 2.1
     getTextTracking: *const fn () callconv(.C) c_int,
+
+    // 2.5
+    setPixel: *const fn (x: c_int, y: c_int, c: LCDColor) callconv(.C) void,
+    getBitmapPixel: *const fn (bitmap: ?*LCDBitmap, x: c_int, y: c_int) callconv(.C) LCDSolidColor,
+    getBitmapTableInfo: *const fn (table: ?*LCDBitmapTable, count: ?*c_int, width: ?*c_int) callconv(.C) void,
 };
 pub const PlaydateDisplay = struct {
     getWidth: *const fn () callconv(.C) c_int,
@@ -538,7 +543,7 @@ pub const PlaydateSoundSample = extern struct {
     newSampleBuffer: *const fn (byteCount: c_int) callconv(.C) ?*AudioSample,
     loadIntoSample: *const fn (sample: ?*AudioSample, path: [*c]const u8) callconv(.C) c_int,
     load: *const fn (path: [*c]const u8) callconv(.C) ?*AudioSample,
-    newSampleFromData: *const fn (data: [*c]u8, format: SoundFormat, sampleRate: u32, byteCount: c_int) callconv(.C) ?*AudioSample,
+    newSampleFromData: *const fn (data: [*c]u8, format: SoundFormat, sampleRate: u32, byteCount: c_int, shouldFreeData: c_int) callconv(.C) ?*AudioSample,
     getData: *const fn (sample: ?*AudioSample, data: ?*[*c]u8, format: [*c]SoundFormat, sampleRate: ?*u32, byteLength: ?*u32) callconv(.C) void,
     freeSample: *const fn (sample: ?*AudioSample) callconv(.C) void,
     getLength: *const fn (sample: ?*AudioSample) callconv(.C) f32,
@@ -695,7 +700,7 @@ pub const PlaydateSoundSequence = extern struct {
     getTime: *const fn (seq: ?*SoundSequence) callconv(.C) u32,
     setTime: *const fn (seq: ?*SoundSequence, time: u32) callconv(.C) void,
     setLoops: *const fn (seq: ?*SoundSequence, loopstart: c_int, loopend: c_int, loops: c_int) callconv(.C) void,
-    getTempo: *const fn (seq: ?*SoundSequence) callconv(.C) c_int,
+    getTempo_deprecated: *const fn (seq: ?*SoundSequence) callconv(.C) c_int,
     setTempo: *const fn (seq: ?*SoundSequence, stepsPerSecond: c_int) callconv(.C) void,
     getTrackCount: *const fn (seq: ?*SoundSequence) callconv(.C) c_int,
     addTrack: *const fn (seq: ?*SoundSequence) callconv(.C) ?*SequenceTrack,
@@ -710,6 +715,9 @@ pub const PlaydateSoundSequence = extern struct {
     stop: *const fn (seq: ?*SoundSequence) callconv(.C) void,
     getCurrentStep: *const fn (seq: ?*SoundSequence, timeOffset: ?*c_int) callconv(.C) c_int,
     setCurrentStep: *const fn (seq: ?*SoundSequence, step: c_int, timeOffset: c_int, playNotes: c_int) callconv(.C) void,
+
+    // 2.5
+    getTempo: *const fn (seq: ?*SoundSequence) callconv(.C) f32,
 };
 
 pub const EffectProc = *const fn (e: ?*SoundEffect, left: [*c]i32, right: [*c]i32, nsamples: c_int, bufactive: c_int) callconv(.C) c_int;
@@ -1047,7 +1055,7 @@ pub const PlaydateSprite = extern struct {
     setZIndex: *const fn (s: ?*LCDSprite, zIndex: i16) callconv(.C) void,
     getZIndex: *const fn (sprite: ?*LCDSprite) callconv(.C) i16,
 
-    setDrawMode: *const fn (sprite: ?*LCDSprite, mode: LCDBitmapDrawMode) callconv(.C) void,
+    setDrawMode: *const fn (sprite: ?*LCDSprite, mode: LCDBitmapDrawMode) callconv(.C) LCDBitmapDrawMode,
     setImageFlip: *const fn (sprite: ?*LCDSprite, flip: LCDBitmapFlip) callconv(.C) void,
     getImageFlip: *const fn (sprite: ?*LCDSprite) callconv(.C) LCDBitmapFlip,
     setStencil: *const fn (sprite: ?*LCDSprite, mode: ?*LCDBitmap) callconv(.C) void, // deprecated in favor of setStencilImage()
