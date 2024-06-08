@@ -84,6 +84,7 @@ pub fn build(b: *std.Build) !void {
     const clean_step = b.step("clean", "Clean all artifacts");
     clean_step.dependOn(b.getUninstallStep());
     clean_step.dependOn(&b.addRemoveDirTree("zig-cache").step);
+    clean_step.dependOn(&b.addRemoveDirTree(".zig-cache").step);
     clean_step.dependOn(&b.addRemoveDirTree("zig-out").step);
 }
 
