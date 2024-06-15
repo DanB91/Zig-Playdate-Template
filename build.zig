@@ -47,7 +47,7 @@ pub fn build(b: *std.Build) !void {
     }
     _ = writer.addCopyFile(elf.getEmittedBin(), "pdex.elf");
 
-    try addCopyDirectory(writer, "assets", ".");
+    try addCopyDirectory(writer, "assets", "./assets");
 
     const playdate_sdk_path = try std.process.getEnvVarOwned(b.allocator, "PLAYDATE_SDK_PATH");
     const pdc_path = b.pathJoin(&.{ playdate_sdk_path, "bin", if (os_tag == .windows) "pdc.exe" else "pdc" });
