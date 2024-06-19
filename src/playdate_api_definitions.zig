@@ -153,7 +153,7 @@ pub const PlaydateSys = extern struct {
 
     //NOTE(Daniel Bokser): std.builtin.VaList is not available when targeting Playdate hardware,
     //      so we need to directly include it
-    const VaList = if (is_compiling_for_playdate_hardware())
+    const VaList = if (is_compiling_for_playdate_hardware() or builtin.os.tag == .windows)
         @cImport({
             @cInclude("stdarg.h");
         }).va_list
