@@ -20,7 +20,7 @@ pub export fn eventHandler(playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEv
             //      just crash with no message.
             panic_handler.init(playdate);
 
-            const playdate_image = playdate.graphics.loadBitmap("images/playdate_image", null).?;
+            const playdate_image = playdate.graphics.loadBitmap("assets/images/playdate_image", null).?;
             const font = playdate.graphics.loadFont("/System/Fonts/Asheville-Sans-14-Bold.pft", null).?;
             playdate.graphics.setFont(font);
 
