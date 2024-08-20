@@ -27,7 +27,7 @@ pub fn build(b: *std.Build) !void {
         _ = writer.addCopyFile(lib.getEmittedPdb(), "pdex.pdb");
     }
 
-    const playdate_target = b.resolveTargetQuery(try std.zig.CrossTarget.parse(.{
+    const playdate_target = b.resolveTargetQuery(try std.Target.Query.parse(.{
         .arch_os_abi = "thumb-freestanding-eabihf",
         .cpu_features = "cortex_m7+vfp4d16sp",
     }));
@@ -37,6 +37,7 @@ pub fn build(b: *std.Build) !void {
         .target = playdate_target,
         .optimize = optimize,
         .pic = true,
+        .single_threaded = true,
     });
     elf.link_emit_relocs = true;
     elf.entry = .{ .symbol_name = "eventHandler" };
@@ -83,9 +84,9 @@ pub fn build(b: *std.Build) !void {
 
     const clean_step = b.step("clean", "Clean all artifacts");
     clean_step.dependOn(b.getUninstallStep());
-    clean_step.dependOn(&b.addRemoveDirTree("zig-cache").step);
-    clean_step.dependOn(&b.addRemoveDirTree(".zig-cache").step);
-    clean_step.dependOn(&b.addRemoveDirTree("zig-out").step);
+    clean_step.dependOn(&b.addRemoveDirTree(b.path("zig-cache")).step);
+    clean_step.dependOn(&b.addRemoveDirTree(b.path(".zig-cache")).step);
+    clean_step.dependOn(&b.addRemoveDirTree(b.path("zig-out")).step);
 }
 
 pub fn addCopyDirectory(
