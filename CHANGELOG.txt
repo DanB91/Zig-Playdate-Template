@@ -1,3 +1,12 @@
+August 21, 2024
+- Updated to work with Zig v0.14.0. Main branch breaks support for v0.13.0.
+- Changed example program to show Zig logo and invert color when "A" button is held.
+- Fixed issue where pdxinfo file was not being copied properly.
+- Fixed an issue where "zig build clean" would crash.
+- Now supports usage of threadlocal variables.
+- Updated README.md:
+    - New screenshots of the updated sample program.
+    - Adds "pdxinfo" to "Contents" section.
 March 8, 2024
 - Fixed issue where latest Zig, version, 0.12.0-dev.3156+0b2e23b06, wasn't generating floating point instructions
 - Added Playdate SDK 2.4.1 API changes

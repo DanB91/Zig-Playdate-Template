@@ -24,6 +24,7 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 - `src/playdate_api_definitions.zig` -- Contains all of the Playdate API code.  This is 1-to-1 with [Playdate's C API](https://sdk.play.date/2.0.0/Inside%20Playdate%20with%20C.html)
 - `main.zig` -- Entry point for your code!  Contains example code that prints "Hello from Zig!" and an draws an example image to the screen.
 - `panic_handler.zig` -- The default Zig panic handler will cause the simulator and hardware to crash without any error message. I wrote my own handler, so panics should now be handled gracefully with proper error messages.
+- `pdxinfo` -- This contains all of the metadata for your game.  Panic provides documentation for this file [here](https://sdk.play.date/2.5.0/Inside%20Playdate.html#pdxinfo).
 - `assets/` -- This folder will contain your assets and has an example image that is drawn to the screen in the example code in `main.zig`.
 
 ## Run Example Code
@@ -32,7 +33,7 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 1. Run `zig build run`.
     1. If there any errors, double check `PLAYDATE_SDK_PATH` is correctly set.
 1. You should now see simulator come up and look the [screenshot here](#screenshot).
-1. When you quit out to the home menu, change the home menu to view as list and you should see the "Hello World Zig" program with a custom icon [like here](#home-screen-list-view).
+1. When you quit out to the home menu, change the home menu to view as list and you should see the "Hello Zig" program with a custom icon [like here](#home-screen-list-view).
 1. Optionally, connect your Playdate to the comupter and upload to the device by going to `Device` -> `Upload Game to Device..` in the Playdate Simulator.
     1. It should load and run on the hardware as well!
 

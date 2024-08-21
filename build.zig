@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const os_tag = @import("builtin").os.tag;
-const name = "example";
+const name = "hello-zig";
 pub fn build(b: *std.Build) !void {
     const pdx_file_name = name ++ ".pdx";
     const optimize = b.standardOptimizeOption(.{});
@@ -47,6 +47,7 @@ pub fn build(b: *std.Build) !void {
         elf.root_module.omit_frame_pointer = true;
     }
     _ = writer.addCopyFile(elf.getEmittedBin(), "pdex.elf");
+    _ = writer.addCopyFile(b.path("pdxinfo"), "pdxinfo");
 
     try addCopyDirectory(writer, "assets", "./assets");
 
@@ -83,7 +84,6 @@ pub fn build(b: *std.Build) !void {
     run_step.dependOn(b.getInstallStep());
 
     const clean_step = b.step("clean", "Clean all artifacts");
-    clean_step.dependOn(b.getUninstallStep());
     clean_step.dependOn(&b.addRemoveDirTree(b.path("zig-cache")).step);
     clean_step.dependOn(&b.addRemoveDirTree(b.path(".zig-cache")).step);
     clean_step.dependOn(&b.addRemoveDirTree(b.path("zig-out")).step);
