@@ -26,6 +26,7 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 - `panic_handler.zig` -- The default Zig panic handler will cause the simulator and hardware to crash without any error message. I wrote my own handler, so panics should now be handled gracefully with proper error messages.
 - `pdxinfo` -- This contains all of the metadata for your game.  Panic provides documentation for this file [here](https://sdk.play.date/2.5.0/Inside%20Playdate.html#pdxinfo).
 - `assets/` -- This folder will contain your assets and has an example image that is drawn to the screen in the example code in `main.zig`.
+-  `vs-code-launch-config` -- This contains instructions and starter configuration files for running and debugging your game on Visual Studio Code.  I also made [a video](https://www.youtube.com/watch?v=PV0WbR3KiiQ) on how to do this as well.
 
 ## Run Example Code
 1. Make sure the Playdate SDK is installed, Zig is installed and in your PATH, and all other [requirements](#Requirements) are met.
