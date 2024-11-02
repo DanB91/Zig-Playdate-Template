@@ -217,9 +217,22 @@ pub const LCDBitmapFlip = enum(c_int) {
     BitmapFlippedY,
     BitmapFlippedXY,
 };
+
 pub const LCDPolygonFillRule = enum(c_int) {
     PolygonFillNonZero,
     PolygonFillEvenOdd,
+};
+
+pub const PDTextWrappingMode = enum(c_int) {
+    WrapClip,
+    WrapCharacter,
+    WrapWord,
+};
+
+pub const PDTextAlignment = enum(c_int) {
+    AlignTextLeft,
+    AlignTextCenter,
+    AlignTextRight,
 };
 
 pub const LCDBitmapTable = opaque {};
@@ -326,6 +339,9 @@ pub const PlaydateGraphics = extern struct {
     setPixel: *const fn (x: c_int, y: c_int, c: LCDColor) callconv(.C) void,
     getBitmapPixel: *const fn (bitmap: ?*LCDBitmap, x: c_int, y: c_int) callconv(.C) LCDSolidColor,
     getBitmapTableInfo: *const fn (table: ?*LCDBitmapTable, count: ?*c_int, width: ?*c_int) callconv(.C) void,
+
+    // 2.6
+    drawTextInRect: *const fn (text: ?*const anyopaque, len: usize, encoding: PDStringEncoding, x: c_int, y: c_int, width: c_int, height: c_int, wrap: PDTextWrappingMode, @"align": PDTextAlignment) callconv(.C) void,
 };
 pub const PlaydateDisplay = struct {
     getWidth: *const fn () callconv(.C) c_int,
@@ -686,6 +702,9 @@ pub const PlaydateSoundSynth = extern struct {
         userdata: ?*anyopaque,
     ) callconv(.C) void,
     copy: *const fn (synth: ?*PDSynth) callconv(.C) ?*PDSynth,
+
+    // 2.6
+    clearEnvelope: *const fn (synth: ?*PDSynth) callconv(.C) void,
 };
 
 pub const SequenceTrack = opaque {};
