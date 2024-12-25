@@ -59,7 +59,7 @@ pub fn build(b: *std.Build) !void {
     elf.link_emit_relocs = true;
     elf.entry = .{ .symbol_name = "eventHandler" };
 
-    elf.setLinkerScriptPath(b.path("link_map.ld"));
+    elf.setLinkerScript(b.path("link_map.ld"));
     if (optimize == .ReleaseFast) {
         elf.root_module.omit_frame_pointer = true;
     }
@@ -78,7 +78,7 @@ pub fn build(b: *std.Build) !void {
     };
 
     const pdc = b.addSystemCommand(&.{pdc_path});
-    pdc.addDirectorySourceArg(source_dir);
+    pdc.addDirectoryArg(source_dir);
     pdc.setName("pdc");
     const pdx = pdc.addOutputFileArg(pdx_file_name);
 
@@ -94,7 +94,7 @@ pub fn build(b: *std.Build) !void {
     });
 
     const run_cmd = b.addSystemCommand(&.{pd_simulator_path});
-    run_cmd.addDirectorySourceArg(pdx);
+    run_cmd.addDirectoryArg(pdx);
     run_cmd.setName("PlaydateSimulator");
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
@@ -126,8 +126,8 @@ fn host_or_cross_target(
     force_use_cross_target: bool,
 ) std.Build.ResolvedTarget {
     const result =
-        if (!force_use_cross_target and b.host.result.os.tag == cross_target.os_tag.?)
-        b.host
+        if (!force_use_cross_target and b.graph.host.result.os.tag == cross_target.os_tag.?)
+        b.graph.host
     else
         b.resolveTargetQuery(cross_target);
     return result;
