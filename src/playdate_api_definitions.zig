@@ -56,10 +56,10 @@ pub const PDLanguage = enum(c_int) {
 };
 
 pub const PDPeripherals = c_int;
-const PERIPHERAL_NONE = 0;
-const PERIPHERAL_ACCELEROMETER = (1 << 0);
+pub const PERIPHERAL_NONE = 0;
+pub const PERIPHERAL_ACCELEROMETER = (1 << 0);
 // ...
-const PERIPHERAL_ALL = 0xFFFF;
+pub const PERIPHERAL_ALL = 0xFFFF;
 
 pub const PDStringEncoding = enum(c_int) {
     ASCIIEncoding,
@@ -369,7 +369,7 @@ pub const SEEK_SET = 0;
 pub const SEEK_CUR = 1;
 pub const SEEK_END = 2;
 
-const FileStat = extern struct {
+pub const FileStat = extern struct {
     isdir: c_int,
     size: c_uint,
     m_year: c_int,
@@ -380,7 +380,7 @@ const FileStat = extern struct {
     m_second: c_int,
 };
 
-const PlaydateFile = extern struct {
+pub const PlaydateFile = extern struct {
     geterr: *const fn () callconv(.C) [*c]const u8,
 
     listfiles: *const fn (
@@ -404,7 +404,7 @@ const PlaydateFile = extern struct {
 };
 
 /////////Audio//////////////
-const MicSource = enum(c_int) {
+pub const MicSource = enum(c_int) {
     kMicInputAutodetect = 0,
     kMicInputInternal = 1,
     kMicInputHeadset = 2,
@@ -902,8 +902,8 @@ pub const PlaydateSoundSignal = struct {
 
 // A SoundEffect processes the output of a channel's SoundSources
 
-const TwoPoleFilter = SoundEffect;
-const TwoPoleFilterType = enum(c_int) {
+pub const TwoPoleFilter = SoundEffect;
+pub const TwoPoleFilterType = enum(c_int) {
     FilterTypeLowPass,
     FilterTypeHighPass,
     FilterTypeBandPass,
@@ -912,7 +912,7 @@ const TwoPoleFilterType = enum(c_int) {
     FilterTypeLowShelf,
     FilterTypeHighShelf,
 };
-const PlaydateSoundEffectTwopolefilter = extern struct {
+pub const PlaydateSoundEffectTwopolefilter = extern struct {
     newFilter: *const fn () callconv(.C) ?*TwoPoleFilter,
     freeFilter: *const fn (filter: ?*TwoPoleFilter) callconv(.C) void,
     setType: *const fn (filter: ?*TwoPoleFilter, type: TwoPoleFilterType) callconv(.C) void,
