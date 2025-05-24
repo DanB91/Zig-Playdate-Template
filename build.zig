@@ -101,9 +101,12 @@ pub fn build(b: *std.Build) !void {
     run_step.dependOn(b.getInstallStep());
 
     const clean_step = b.step("clean", "Clean all artifacts");
-    clean_step.dependOn(&b.addRemoveDirTree(b.path("zig-cache")).step);
-    clean_step.dependOn(&b.addRemoveDirTree(b.path(".zig-cache")).step);
     clean_step.dependOn(&b.addRemoveDirTree(b.path("zig-out")).step);
+    if (builtin.os.tag != .windows) {
+        //Removing zig-cache from the Zig build script does not work on Windows: https://github.com/ziglang/zig/issues/9216
+        clean_step.dependOn(&b.addRemoveDirTree(b.path("zig-cache")).step);
+        clean_step.dependOn(&b.addRemoveDirTree(b.path(".zig-cache")).step);
+    }
 }
 
 //The purpose of this function is a result of:
@@ -127,9 +130,9 @@ fn host_or_cross_target(
 ) std.Build.ResolvedTarget {
     const result =
         if (!force_use_cross_target and b.graph.host.result.os.tag == cross_target.os_tag.?)
-        b.graph.host
-    else
-        b.resolveTargetQuery(cross_target);
+            b.graph.host
+        else
+            b.resolveTargetQuery(cross_target);
     return result;
 }
 
