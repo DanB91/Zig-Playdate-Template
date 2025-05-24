@@ -39,13 +39,13 @@ pub export fn eventHandler(playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEv
 
             const global_state: *ExampleGlobalState =
                 @ptrCast(
-                @alignCast(
-                    playdate.system.realloc(
-                        null,
-                        @sizeOf(ExampleGlobalState),
+                    @alignCast(
+                        playdate.system.realloc(
+                            null,
+                            @sizeOf(ExampleGlobalState),
+                        ),
                     ),
-                ),
-            );
+                );
             global_state.* = .{
                 .playdate = playdate,
                 .font = font,
@@ -71,12 +71,12 @@ fn update_and_render(userdata: ?*anyopaque) callconv(.C) c_int {
     const to_draw = "Hold Ⓐ";
     const text_width =
         playdate.graphics.getTextWidth(
-        global_state.font,
-        to_draw,
-        to_draw.len,
-        .UTF8Encoding,
-        0,
-    );
+            global_state.font,
+            to_draw,
+            to_draw.len,
+            .UTF8Encoding,
+            0,
+        );
 
     var draw_mode: pdapi.LCDBitmapDrawMode = .DrawModeCopy;
     var clear_color: pdapi.LCDSolidColor = .ColorWhite;

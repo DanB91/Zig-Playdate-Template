@@ -11,6 +11,7 @@ pub const PlaydateAPI = extern struct {
     lua: *const PlaydateLua,
     json: *const PlaydateJSON,
     scoreboards: *const PlaydateScoreboards,
+    network: *const PlaydateNetwork,
 };
 
 /////////Zig Utility Functions///////////
@@ -53,6 +54,13 @@ pub const PDLanguage = enum(c_int) {
     PDLanguageEnglish,
     PDLanguageJapanese,
     PDLanguageUnknown,
+};
+
+pub const AccessRequestCallback = ?*const fn (allowed: bool, userdata: ?*anyopaque) callconv(.C) void;
+pub const AccessReply = enum(c_int) {
+    AccessAsk = 0,
+    AccessDeny,
+    AccessAllow,
 };
 
 pub const PDPeripherals = c_int;
@@ -151,6 +159,15 @@ pub const PlaydateSys = extern struct {
         ...,
     ) callconv(.C) c_int,
 
+    // ???
+    delay: *const fn (milliseconds: u32) callconv(.C) void,
+
+    // 2.7
+    getServerTime: *const fn (callback: *const fn (time: ?[*:0]const u8, err: ?[*:0]const u8) callconv(.C) void) callconv(.C) void,
+    restartGame: *const fn (launchargs: ?[*:0]const u8) callconv(.C) void,
+    getLaunchArgs: *const fn (outpath: [*c][*:0]const u8) callconv(.C) ?[*:0]const u8,
+    sendMirrorData: *const fn (command: u8, data: [*c]u8, len: c_int) callconv(.C) bool,
+
     //NOTE(Daniel Bokser): std.builtin.VaList is not available when targeting Playdate hardware,
     //      so we need to directly include it
     const VaList = if (is_compiling_for_playdate_hardware() or builtin.os.tag == .windows)
@@ -170,6 +187,7 @@ pub const LCD_ROWS = 240;
 pub const LCD_ROWSIZE = 52;
 pub const LCDBitmap = opaque {};
 pub const LCDVideoPlayer = opaque {};
+pub const LCDStreamPlayer = opaque {};
 pub const PlaydateVideo = extern struct {
     loadVideo: *const fn ([*c]const u8) callconv(.C) ?*LCDVideoPlayer,
     freePlayer: *const fn (?*LCDVideoPlayer) callconv(.C) void,
@@ -235,6 +253,7 @@ pub const PDTextAlignment = enum(c_int) {
     AlignTextRight,
 };
 
+pub const LCDTileMap = opaque {};
 pub const LCDBitmapTable = opaque {};
 pub const LCDFont = opaque {};
 pub const LCDFontPage = opaque {};
@@ -245,6 +264,51 @@ pub const LCDRect = extern struct {
     right: c_int,
     top: c_int,
     bottom: c_int,
+};
+
+pub const PlaydateVideostream = extern struct {
+    newPlayer: *const fn () callconv(.C) ?*LCDStreamPlayer,
+    freePlayer: *const fn (p: ?*LCDStreamPlayer) callconv(.C) void,
+
+    setBufferSize: *const fn (p: ?*LCDStreamPlayer, video: c_int, audio: c_int) callconv(.C) void,
+
+    setFile: *const fn (p: ?*LCDStreamPlayer, file: ?*SDFile) callconv(.C) void,
+
+    setHTTPConnection: *const fn (p: ?*LCDStreamPlayer, conn: ?*HTTPConnection) callconv(.C) void,
+
+    getFilePlayer: *const fn (p: ?*LCDStreamPlayer) callconv(.C) ?*FilePlayer,
+
+    getVideoPlayer: *const fn (p: ?*LCDStreamPlayer) callconv(.C) ?*LCDVideoPlayer,
+
+    // returns true if it drew a frame, else false
+    update: *const fn (p: ?*LCDStreamPlayer) callconv(.C) bool,
+
+    getBufferedFrameCount: *const fn (p: ?*LCDStreamPlayer) callconv(.C) c_int,
+
+    //     uint32_t (*getBytesRead)(LCDStreamPlayer* p);
+    getBytesRead: *const fn (p: ?*LCDStreamPlayer) callconv(.C) u32,
+
+    // 3.0
+    setTCPConnection: *const fn (p: ?*LCDStreamPlayer, conn: ?*TCPConnection) callconv(.C) void,
+};
+
+pub const PlaydateTilemap = extern struct {
+    newTilemap: *const fn () callconv(.C) ?*LCDTileMap,
+    freeTilemap: *const fn (m: ?*LCDTileMap) callconv(.C) void,
+
+    setImageTable: *const fn (m: ?*LCDTileMap, table: ?*LCDBitmapTable) callconv(.C) void,
+    getImageTable: *const fn (m: ?*LCDTileMap) callconv(.C) ?*LCDBitmapTable,
+
+    setSize: *const fn (m: ?*LCDTileMap, tilesWide: c_int, tilesHigh: c_int) callconv(.C) void,
+    getSize: *const fn (m: ?*LCDTileMap, tilesWide: ?*c_int, tilesHigh: ?*c_int) callconv(.C) void,
+    getPixelSize: *const fn (m: ?*LCDTileMap, outWidth: ?*u32, outHeight: ?*u32) callconv(.C) void,
+
+    setTiles: *const fn (m: ?*LCDTileMap, indexes: [*c]u16, count: c_int, rowwidth: c_int) callconv(.C) void,
+
+    setTileAtPosition: *const fn (m: ?*LCDTileMap, x: c_int, y: c_int, idx: u16) callconv(.C) void,
+    getTileAtPosition: *const fn (m: ?*LCDTileMap, x: c_int, y: c_int) callconv(.C) c_int,
+
+    drawAtPoint: *const fn (m: ?*LCDTileMap, x: f32, y: f32) callconv(.C) void,
 };
 
 pub const PlaydateGraphics = extern struct {
@@ -342,6 +406,15 @@ pub const PlaydateGraphics = extern struct {
 
     // 2.6
     drawTextInRect: *const fn (text: ?*const anyopaque, len: usize, encoding: PDStringEncoding, x: c_int, y: c_int, width: c_int, height: c_int, wrap: PDTextWrappingMode, @"align": PDTextAlignment) callconv(.C) void,
+
+    // 2.7
+    getTextHeightForMaxWidth: *const fn (font: ?*LCDFont, text: [*c]const u8, len: usize, maxwidth: c_int, encoding: PDStringEncoding, wrap: PDTextWrappingMode, tracking: c_int, extraLeading: c_int) callconv(.C) c_int,
+    drawRoundRect: *const fn (x: c_int, y: c_int, width: c_int, height: c_int, radius: c_int, lineWidth: c_int, color: LCDColor) callconv(.C) void,
+    fillRoundRect: *const fn (x: c_int, y: c_int, width: c_int, height: c_int, radius: c_int, color: LCDColor) callconv(.C) void,
+
+    // 3.0
+    tilemap: *const PlaydateTilemap,
+    videostream: *const PlaydateVideostream,
 };
 pub const PlaydateDisplay = struct {
     getWidth: *const fn () callconv(.C) c_int,
@@ -354,6 +427,10 @@ pub const PlaydateDisplay = struct {
     setMosaic: *const fn (x: c_uint, y: c_uint) callconv(.C) void,
     setFlipped: *const fn (x: c_uint, y: c_uint) callconv(.C) void,
     setOffset: *const fn (x: c_uint, y: c_uint) callconv(.C) void,
+
+    // 2.7
+    getRefreshRate: *const fn () callconv(.C) f32,
+    getFPS: *const fn () callconv(.C) f32,
 };
 
 //////File System/////
@@ -1134,6 +1211,10 @@ pub const PlaydateSprite = extern struct {
     // 2.1
     setCenter: *const fn (s: ?*LCDSprite, x: f32, y: f32) callconv(.C) void,
     getCenter: *const fn (s: ?*LCDSprite, x: ?*f32, y: ?*f32) callconv(.C) void,
+
+    // 2.7
+    setTilemap: *const fn (s: ?*LCDSprite, tilemap: ?*LCDTileMap) callconv(.C) void,
+    getTilemap: *const fn (s: ?*LCDSprite) callconv(.C) ?*LCDTileMap,
 };
 
 ////////Lua///////
@@ -1386,4 +1467,109 @@ pub const PlaydateScoreboards = extern struct {
 
     getScores: *const fn (boardId: [*c]const u8, callback: ScoresCallback) callconv(.C) c_int,
     freeScoresList: *const fn (scores: ?*PDScoresList) callconv(.C) void,
+};
+
+///////Network///////////
+pub const HTTPConnection = opaque {};
+pub const TCPConnection = opaque {};
+
+pub const PDNetErr = enum(c_int) {
+    NET_OK = 0,
+    NET_NO_DEVICE = -1,
+    NET_BUSY = -2,
+    NET_WRITE_ERROR = -3,
+    NET_WRITE_BUSY = -4,
+    NET_WRITE_TIMEOUT = -5,
+    NET_READ_ERROR = -6,
+    NET_READ_BUSY = -7,
+    NET_READ_TIMEOUT = -8,
+    NET_READ_OVERFLOW = -9,
+    NET_FRAME_ERROR = -10,
+    NET_BAD_RESPONSE = -11,
+    NET_ERROR_RESPONSE = -12,
+    NET_RESET_TIMEOUT = -13,
+    NET_BUFFER_TOO_SMALL = -14,
+    NET_UNEXPECTED_RESPONSE = -15,
+    NET_NOT_CONNECTED_TO_AP = -16,
+    NET_NOT_IMPLEMENTED = -17,
+    NET_CONNECTION_CLOSED = -18,
+};
+
+pub const WifiStatus = enum(c_int) {
+    WifiNotConnected = 0, //< Not connected to an AP
+    WifiConnected, //< Device is connected to an AP
+    WifiNotAvailable, //< A connection has been attempted and no configured AP was available
+};
+
+pub const HTTPConnectionCallback = ?*const fn (connection: ?*HTTPConnection) callconv(.C) void;
+pub const HTTPHeaderCallback = ?*const fn (conn: ?*HTTPConnection, key: ?[*:0]const u8, value: ?[*:0]const u8) callconv(.C) void;
+
+pub const PlaydateHTTP = extern struct {
+    requestAccess: *const fn (server: ?[*:0]const u8, port: c_int, usessl: bool, purpose: ?[*:0]const u8, requestCallback: AccessRequestCallback, userdata: ?*anyopaque) callconv(.C) AccessReply,
+
+    newConnection: *const fn (server: ?[*:0]const u8, port: c_int, usessl: bool) callconv(.C) ?*HTTPConnection,
+    retain: *const fn (http: ?*HTTPConnection) callconv(.C) ?*HTTPConnection,
+    release: *const fn (http: ?*HTTPConnection) callconv(.C) void,
+
+    setConnectTimeout: *const fn (connection: ?*HTTPConnection, ms: c_int) callconv(.C) void,
+    setKeepAlive: *const fn (connection: ?*HTTPConnection, keepalive: bool) callconv(.C) void,
+    setByteRange: *const fn (connection: ?*HTTPConnection, start: c_int, end: c_int) callconv(.C) void,
+    setUserdata: *const fn (connection: ?*HTTPConnection, userdata: ?*anyopaque) callconv(.C) void,
+    getUserdata: *const fn (connection: ?*HTTPConnection) callconv(.C) ?*anyopaque,
+
+    get: *const fn (connection: ?*HTTPConnection, path: ?[*:0]const u8, headers: ?[*:0]const u8, headerlen: usize) callconv(.C) PDNetErr,
+    post: *const fn (connection: ?*HTTPConnection, path: ?[*:0]const u8, headers: ?[*:0]const u8, headerlen: usize, body: ?[*:0]const u8, bodylen: usize) callconv(.C) PDNetErr,
+    query: *const fn (connection: ?*HTTPConnection, method: ?[*:0]const u8, path: ?[*:0]const u8, headers: ?[*:0]const u8, headerlen: usize, body: ?[*:0]const u8, bodylen: usize) callconv(.C) PDNetErr,
+    getError: *const fn (connection: ?*HTTPConnection) callconv(.C) PDNetErr,
+    getProgress: *const fn (connection: ?*HTTPConnection, read: ?*c_int, total: ?*c_int) callconv(.C) void,
+    getResponseStatus: *const fn (connection: ?*HTTPConnection) callconv(.C) c_int,
+    getBytesAvailable: *const fn (connection: ?*HTTPConnection) callconv(.C) usize,
+    setReadTimeout: *const fn (connection: ?*HTTPConnection, ms: c_int) callconv(.C) void,
+    setReadBufferSize: *const fn (connection: ?*HTTPConnection, bytes: c_int) callconv(.C) void,
+    read: *const fn (connection: ?*HTTPConnection, buf: [*c]u8, buflen: c_uint) callconv(.C) c_int,
+    close: *const fn (connection: ?*HTTPConnection) callconv(.C) void,
+
+    setHeaderReceivedCallback: *const fn (connection: ?*HTTPConnection, headercb: HTTPHeaderCallback) callconv(.C) void,
+    setHeadersReadCallback: *const fn (connection: ?*HTTPConnection, callback: HTTPConnectionCallback) callconv(.C) void,
+    setResponseCallback: *const fn (connection: ?*HTTPConnection, callback: HTTPConnectionCallback) callconv(.C) void,
+    setRequestCompleteCallback: *const fn (connection: ?*HTTPConnection, callback: HTTPConnectionCallback) callconv(.C) void,
+    setConnectionClosedCallback: *const fn (connection: ?*HTTPConnection, callback: HTTPConnectionCallback) callconv(.C) void,
+};
+
+pub const TCPConnectionCallback = ?*const fn (connection: ?*TCPConnection, err: PDNetErr) callconv(.C) void;
+pub const TCPOpenCallback = ?*const fn (connection: ?*TCPConnection, err: PDNetErr, ud: ?*anyopaque) callconv(.C) void;
+
+pub const PlaydateTCP = extern struct {
+    requestAccess: *const fn (server: ?[*:0]const u8, port: c_int, usessl: bool, purpose: ?[*:0]const u8, requestCallback: AccessRequestCallback, userdata: ?*anyopaque) callconv(.C) AccessReply,
+
+    newConnection: *const fn (server: ?[*:0]const u8, port: c_int, usessl: bool) callconv(.C) ?*TCPConnection,
+    retain: *const fn (tcp: ?*TCPConnection) callconv(.C) ?*TCPConnection,
+    release: *const fn (tcp: ?*TCPConnection) callconv(.C) void,
+    getError: *const fn (connection: ?*TCPConnection) callconv(.C) PDNetErr,
+
+    setConnectTimeout: *const fn (connection: ?*TCPConnection, ms: c_int) callconv(.C) void,
+    setUserdata: *const fn (connection: ?*TCPConnection, userdata: ?*anyopaque) callconv(.C) void,
+    getUserdata: *const fn (connection: ?*TCPConnection) callconv(.C) ?*anyopaque,
+
+    open: *const fn (connection: ?*TCPConnection, cb: TCPOpenCallback, ud: ?*anyopaque) callconv(.C) PDNetErr,
+    close: *const fn (connection: ?*TCPConnection) callconv(.C) PDNetErr,
+
+    setConnectionClosedCallback: *const fn (connection: ?*TCPConnection, callback: TCPConnectionCallback) callconv(.C) void,
+
+    setReadTimeout: *const fn (connection: ?*TCPConnection, ms: c_int) callconv(.C) void,
+    setReadBufferSize: *const fn (connection: ?*TCPConnection, bytes: c_int) callconv(.C) void,
+    getBytesAvailable: *const fn (connection: ?*TCPConnection) callconv(.C) usize,
+
+    read: *const fn (connection: ?*TCPConnection, buffer: [*c]u8, length: usize) callconv(.C) c_int, // returns # of bytes read, or PDNetErr on error
+    write: *const fn (connection: ?*TCPConnection, buffer: [*c]const u8, length: usize) callconv(.C) c_int, // returns # of bytes read, or PDNetErr on error
+};
+
+pub const PlaydateNetwork = extern struct {
+    playdate_http: *const PlaydateHTTP,
+    playdate_tcp: *const PlaydateTCP,
+
+    getStatus: *const fn () callconv(.C) WifiStatus,
+    setEnabled: *const fn (flag: bool, callback: ?*const fn (err: PDNetErr) callconv(.C) void) callconv(.C) void,
+
+    reserved: [3]usize,
 };
