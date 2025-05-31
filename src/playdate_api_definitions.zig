@@ -425,8 +425,8 @@ pub const PlaydateDisplay = struct {
     setInverted: *const fn (flag: c_int) callconv(.C) void,
     setScale: *const fn (s: c_uint) callconv(.C) void,
     setMosaic: *const fn (x: c_uint, y: c_uint) callconv(.C) void,
-    setFlipped: *const fn (x: c_uint, y: c_uint) callconv(.C) void,
-    setOffset: *const fn (x: c_uint, y: c_uint) callconv(.C) void,
+    setFlipped: *const fn (x: c_int, y: c_int) callconv(.C) void,
+    setOffset: *const fn (x: c_int, y: c_int) callconv(.C) void,
 
     // 2.7
     getRefreshRate: *const fn () callconv(.C) f32,
