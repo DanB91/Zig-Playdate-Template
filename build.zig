@@ -48,13 +48,16 @@ pub fn build(b: *std.Build) !void {
         .arch_os_abi = "thumb-freestanding-eabihf",
         .cpu_features = "cortex_m7+vfp4d16sp",
     }));
-    const elf = b.addExecutable(.{
-        .name = "pdex.elf",
+    const playdate_mod = b.addModule("pdex", .{
         .root_source_file = b.path("src/main.zig"),
         .target = playdate_target,
         .optimize = optimize,
         .pic = true,
         .single_threaded = true,
+    });
+    const elf = b.addExecutable(.{
+        .name = "pdex.elf",
+        .root_module = playdate_mod,
     });
     elf.link_emit_relocs = true;
     elf.entry = .{ .symbol_name = "eventHandler" };
@@ -143,11 +146,15 @@ fn compile_simulator_binary(
     writer: *std.Build.Step.WriteFile,
 ) !void {
     const os_tag = target.result.os.tag;
-    const lib = b.addSharedLibrary(.{
-        .name = "pdex",
+    const mod = b.addModule("pdex", .{
         .root_source_file = b.path("src/main.zig"),
         .optimize = optimize,
         .target = target,
+    });
+    const lib = b.addLibrary(.{
+        .name = "pdex",
+        .linkage = .dynamic,
+        .root_module = mod,
     });
     const pdex_extension = switch (os_tag) {
         .windows => "dll",

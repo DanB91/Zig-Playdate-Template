@@ -34,7 +34,7 @@ pub fn panic(
             //playdate simulator
             var stack_trace_buffer = [_]u8{0} ** 4096;
             var buffer = [_]u8{0} ** 4096;
-            var stream = std.io.fixedBufferStream(&stack_trace_buffer);
+            var stream = std.io.Writer.fixed(&stack_trace_buffer);
 
             const stack_trace_string = b: {
                 if (builtin.strip_debug_info) {
@@ -49,15 +49,14 @@ pub fn panic(
                     break :b to_print;
                 };
                 std.debug.writeCurrentStackTrace(
-                    stream.writer(),
+                    &stream,
                     debug_info,
                     .no_color,
                     null,
                 ) catch break :b "Unable to dump stack trace: Unknown error writng stack trace";
 
                 //NOTE: playdate.system.error (and all Playdate APIs that deal with strings) require a null termination
-                const null_char_index = @min(stream.pos, stack_trace_buffer.len - 1);
-                stack_trace_buffer[null_char_index] = 0;
+                stack_trace_buffer[stack_trace_buffer.len - 1] = 0;
 
                 break :b &stack_trace_buffer;
             };

@@ -12,7 +12,7 @@ const ExampleGlobalState = struct {
     image_height: c_int,
 };
 
-pub export fn eventHandler(playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEvent, arg: u32) callconv(.C) c_int {
+pub export fn eventHandler(playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEvent, arg: u32) callconv(.c) c_int {
     //TODO: replace with your own code!
 
     _ = arg;
@@ -61,7 +61,7 @@ pub export fn eventHandler(playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEv
     return 0;
 }
 
-fn update_and_render(userdata: ?*anyopaque) callconv(.C) c_int {
+fn update_and_render(userdata: ?*anyopaque) callconv(.c) c_int {
     //TODO: replace with your own code!
 
     const global_state: *ExampleGlobalState = @ptrCast(@alignCast(userdata.?));
