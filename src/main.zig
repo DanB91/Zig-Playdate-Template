@@ -19,8 +19,9 @@ pub export fn eventHandler(playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEv
     switch (event) {
         .EventInit => {
             //NOTE: Initalizing the panic handler should be the first thing that is done.
-            //      If a panic happens before calling this, the simulator or hardware will
-            //      just crash with no message.
+            //      If a panic happens before calling this, the hardware will
+            //      just crash with no message. On the simulator, panics currently crash.
+            //      See the 2nd TODO in panic_handler.zig for more details.
             panic_handler.init(playdate);
 
             const zig_image = playdate.graphics.loadBitmap("assets/images/zig-playdate", null).?;

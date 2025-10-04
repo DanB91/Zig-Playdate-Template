@@ -85,6 +85,11 @@ pub const PDDateTime = extern struct {
     second: u8,
 };
 
+pub const PDInfo = extern struct {
+    osversion: u32,
+    language: PDLanguage,
+};
+
 pub const PlaydateSys = extern struct {
     realloc: *const fn (ptr: ?*anyopaque, size: usize) callconv(.c) ?*anyopaque,
     formatString: *const fn (ret: ?*[*c]u8, fmt: ?[*:0]const u8, ...) callconv(.c) c_int,
@@ -168,16 +173,16 @@ pub const PlaydateSys = extern struct {
     getLaunchArgs: *const fn (outpath: [*c][*:0]const u8) callconv(.c) ?[*:0]const u8,
     sendMirrorData: *const fn (command: u8, data: [*c]u8, len: c_int) callconv(.c) bool,
 
-    //NOTE(Daniel Bokser): std.builtin.VaList is not available when targeting Playdate hardware,
+    // 3.0
+    getSystemInfo: *const fn () callconv(.c) *const PDInfo,
+
+    //NOTE(Daniel Bokser): std.builtin.VaList is not available when targeting Windows,
     //      so we need to directly include it
-    const VaList = if (is_compiling_for_playdate_hardware() or builtin.os.tag == .windows)
+    const VaList = if (builtin.os.tag == .windows)
         @cImport({
             @cInclude("stdarg.h");
         }).va_list
     else
-        //NOTE(Daniel Bokser):
-        //  We must use std.builtin.VaList when building for the Linux simulator.
-        //  Using stdarg.h results in a compiler error otherwise.
         std.builtin.VaList;
 };
 
