@@ -161,6 +161,20 @@ fn compile_simulator_binary(
     _ = writer.addCopyFile(lib.getEmittedBin(), pdex_filename);
 
     if (os_tag == .windows) {
+        const c_source_code =
+            \\#include <stdarg.h>
+        ;
+
+        const c_source_file_step = b.addWriteFiles();
+        const c_source_path = c_source_file_step.add("c.c", c_source_code);
+
+        const translate_c = b.addTranslateC(.{
+            .root_source_file = c_source_path,
+            .target = target,
+            .optimize = optimize,
+            .link_libc = false,
+        });
+        mod.addImport("win_stdarg", translate_c.createModule());
         _ = writer.addCopyFile(lib.getEmittedPdb(), "pdex.pdb");
     }
 }
