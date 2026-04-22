@@ -179,9 +179,7 @@ pub const PlaydateSys = extern struct {
     //NOTE(Daniel Bokser): std.builtin.VaList is not available when targeting Windows,
     //      so we need to directly include it
     const VaList = if (builtin.os.tag == .windows)
-        @cImport({
-            @cInclude("stdarg.h");
-        }).va_list
+        @import("win_stdarg").va_list
     else
         std.builtin.VaList;
 };
