@@ -3,6 +3,9 @@ const builtin = @import("builtin");
 
 const name = "hello-zig";
 pub fn build(b: *std.Build) !void {
+    var threaded = std.Io.Threaded.init_single_threaded;
+    const io = threaded.io();
+
     const pdx_file_name = name ++ ".pdx";
     const optimize = b.standardOptimizeOption(.{});
 
@@ -69,9 +72,9 @@ pub fn build(b: *std.Build) !void {
     _ = writer.addCopyFile(elf.getEmittedBin(), "pdex.elf");
     _ = writer.addCopyFile(b.path("pdxinfo"), "pdxinfo");
 
-    try addCopyDirectory(writer, "assets", "./assets");
+    try addCopyDirectory(writer, "assets", "./assets", io);
 
-    const playdate_sdk_path = try std.process.getEnvVarOwned(b.allocator, "PLAYDATE_SDK_PATH");
+    const playdate_sdk_path = b.graph.environ_map.get("PLAYDATE_SDK_PATH") orelse return error.PLAYDATE_SDK_PATH_NOT_SET;
     const pdc_path = b.pathJoin(&.{ playdate_sdk_path, "bin", if (builtin.os.tag == .windows) "pdc.exe" else "pdc" });
     const pd_simulator_path = switch (builtin.os.tag) {
         .linux => b.pathJoin(&.{ playdate_sdk_path, "bin", "PlaydateSimulator" }),
@@ -102,14 +105,6 @@ pub fn build(b: *std.Build) !void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
     run_step.dependOn(b.getInstallStep());
-
-    const clean_step = b.step("clean", "Clean all artifacts");
-    clean_step.dependOn(&b.addRemoveDirTree(b.path("zig-out")).step);
-    if (builtin.os.tag != .windows) {
-        //Removing zig-cache from the Zig build script does not work on Windows: https://github.com/ziglang/zig/issues/9216
-        clean_step.dependOn(&b.addRemoveDirTree(b.path("zig-cache")).step);
-        clean_step.dependOn(&b.addRemoveDirTree(b.path(".zig-cache")).step);
-    }
 }
 
 //The purpose of this function is a result of:
@@ -174,15 +169,17 @@ fn addCopyDirectory(
     wf: *std.Build.Step.WriteFile,
     src_path: []const u8,
     dest_path: []const u8,
+    io: std.Io,
 ) !void {
     const b = wf.step.owner;
     var dir = try b.build_root.handle.openDir(
+        io,
         src_path,
         .{ .iterate = true },
     );
-    defer dir.close();
+    defer dir.close(io);
     var it = dir.iterate();
-    while (try it.next()) |entry| {
+    while (try it.next(io)) |entry| {
         const new_src_path = b.pathJoin(&.{ src_path, entry.name });
         const new_dest_path = b.pathJoin(&.{ dest_path, entry.name });
         const new_src = b.path(new_src_path);
@@ -195,6 +192,7 @@ fn addCopyDirectory(
                     wf,
                     new_src_path,
                     new_dest_path,
+                    io,
                 );
             },
             //TODO: possible support for sym links?
