@@ -66,7 +66,7 @@ pub fn build(b: *std.Build) !void {
     elf.entry = .{ .symbol_name = "eventHandler" };
 
     elf.setLinkerScript(b.path("link_map.ld"));
-    if (optimize == .ReleaseFast) {
+    if (optimize == .fast) {
         elf.root_module.omit_frame_pointer = true;
     }
     _ = writer.addCopyFile(elf.getEmittedBin(), "pdex.elf");
@@ -141,7 +141,7 @@ fn compile_simulator_binary(
     writer: *std.Build.Step.WriteFile,
 ) !void {
     const os_tag = target.result.os.tag;
-    const mod = b.addModule("pdex", .{
+    const mod = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .optimize = optimize,
         .target = target,
@@ -186,7 +186,7 @@ fn addCopyDirectory(
     io: std.Io,
 ) !void {
     const b = wf.step.owner;
-    var dir = try b.build_root.handle.openDir(
+    var dir = try b.root.openDir(
         io,
         src_path,
         .{ .iterate = true },
