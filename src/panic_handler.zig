@@ -44,6 +44,11 @@ pub fn panic(
             //   I am told Panic does have an exit() API forthcoming.  Once that is there, I can
             //   uncomment the code below, and hopefully finally fix
             //   https://github.com/DanB91/Zig-Playdate-Template/issues/13
+            //
+            //   UPDATE: In 3.1.0, exitToLauncher() was added, which I believe was the exit() API
+            //           foretold. Disappointingly, this function does not exit the program
+            //           immediately. Thus, I am not sure if I will ever be able to uncomment this code.
+            //           But, I will leave it here for just in case.
 
             // var stack_trace_buffer = [_]u8{0} ** 4096;
             // var buffer = [_]u8{0} ** 4096;
